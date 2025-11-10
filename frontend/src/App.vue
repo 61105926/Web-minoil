@@ -1,10 +1,12 @@
 <template>
   <router-view />
+  <ToastContainer />
 </template>
 
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useTheme } from '@/composables/useTheme'
+import ToastContainer from '@/components/ToastContainer.vue'
 
 const { setTheme } = useTheme()
 

@@ -85,12 +85,63 @@ export class DatabaseService implements OnModuleDestroy {
             console.error('Error ejecutando query:', err.message);
             reject(err);
           } else {
-            resolve(rows);
+            resolve(rows || []);
           }
         });
       });
     } catch (error: any) {
       console.error('Error en query:', error.message);
+      throw error;
+    }
+  }
+
+  async execute(sql: string, params: any[] = []): Promise<void> {
+    try {
+      // Intentar conectar si no hay conexión
+      if (!this.connection) {
+        try {
+          await this.connect();
+        } catch (error: any) {
+          throw new Error(`No se pudo conectar a SAP HANA: ${error.message}`);
+        }
+      }
+
+      // Si aún no hay conexión (modo demo), lanzar error
+      if (!this.connection) {
+        throw new Error('Conexión a SAP HANA no disponible - Modo DEMO');
+      }
+
+      return new Promise((resolve, reject) => {
+        // Para INSERT, UPDATE, DELETE usamos exec directamente
+        // SAP HANA hace auto-commit por defecto, pero podemos hacer commit explícito
+        this.connection.exec(sql, params, (err, result) => {
+          if (err) {
+            console.error('❌ Error ejecutando comando:', err.message);
+            console.error('❌ SQL:', sql.substring(0, 200));
+            console.error('❌ Params:', params.length, 'parámetros');
+            reject(err);
+          } else {
+            // Intentar hacer commit explícito si el método existe
+            if (typeof this.connection.commit === 'function') {
+              this.connection.commit((commitErr) => {
+                if (commitErr) {
+                  console.error('❌ Error haciendo commit:', commitErr.message);
+                  // No rechazamos si el commit falla, ya que SAP HANA puede hacer auto-commit
+                  console.warn('⚠️  Commit falló, pero la operación puede haberse completado');
+                }
+                resolve();
+              });
+            } else {
+              // Si no hay método commit, asumimos auto-commit
+              console.log('✅ Comando ejecutado (auto-commit)');
+              resolve();
+            }
+          }
+        });
+      });
+    } catch (error: any) {
+      console.error('❌ Error en execute:', error.message);
+      console.error('❌ Stack:', error.stack);
       throw error;
     }
   }

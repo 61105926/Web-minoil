@@ -1,7 +1,8 @@
 import axios from 'axios'
 import authService from './auth.service'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+// En producción, si no hay VITE_API_URL, usar ruta relativa (mismo servidor)
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3000')
 
 export interface Sala {
   codigo: string

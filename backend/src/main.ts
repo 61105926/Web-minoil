@@ -21,11 +21,11 @@ async function bootstrap() {
     app.useStaticAssets(publicPath);
     console.log('✅ Archivos estáticos configurados');
 
-    const port = process.env.PORT || 3000;
+    const port = process.env.PORT || 8002;
     console.log(`📡 Iniciando servidor en puerto ${port}...`);
     
-    await app.listen(port);
-    console.log(`✅ Aplicación corriendo en http://localhost:${port}`);
+    await app.listen(port, '0.0.0.0');
+    console.log(`✅ Aplicación corriendo en http://0.0.0.0:${port}`);
     console.log('✅ Sistema listo');
   } catch (error) {
     console.error('❌ Error al iniciar la aplicación:', error);

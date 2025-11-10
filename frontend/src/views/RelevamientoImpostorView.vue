@@ -396,6 +396,16 @@
                   Descargar PDF
                 </Button>
                 <Button
+                  @click="guardarEnBaseDatos"
+                  :disabled="guardandoEnBD"
+                  class="h-14 text-base font-bold bg-gradient-to-r from-green-600 to-green-700 text-white hover:opacity-90 shadow-lg disabled:opacity-50"
+                >
+                  <svg class="h-5 w-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  {{ guardandoEnBD ? 'Guardando...' : 'Guardar en Base de Datos' }}
+                </Button>
+                <Button
                   @click="resetearFormulario"
                   class="h-14 text-base font-bold bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:opacity-90 shadow-lg"
                 >
@@ -422,6 +432,8 @@ import Input from '@/components/ui/Input.vue'
 import RoomSelectorModal, { type Sala } from '@/components/RoomSelectorModal.vue'
 import salasService from '@/services/salas.service'
 import productosService from '@/services/productos.service'
+import impostorService from '@/services/impostor.service'
+import { useToast } from '@/composables/useToast'
 import jsPDF from 'jspdf'
 
 interface LoteInfo {
@@ -462,6 +474,8 @@ const mostrarInforme = ref(false)
 const salaTieneBodega = ref<boolean | null>(null)
 const productosBase = ref<ItemReposicion[]>([])
 const loadingProductos = ref(false)
+const guardandoEnBD = ref(false)
+const toast = useToast()
 
 // Productos por defecto (fallback)
 const productosDefault: ItemReposicion[] = [
@@ -730,6 +744,44 @@ const avanzarSiguienteProducto = () => {
   }
 }
 
+const guardarEnBaseDatos = async () => {
+  if (!salaSeleccionadaObj.value || registros.value.length === 0) {
+    toast.warning('Sin datos', 'No hay datos para guardar')
+    return
+  }
+
+  guardandoEnBD.value = true
+  try {
+    console.log('🔵 Preparando datos para guardar...')
+    
+    // Transformar los registros al formato esperado por la API
+    const datosParaInsertar = registros.value.map(registro => ({
+      CardCode: salaSeleccionadaObj.value!.codigo,
+      ItemCode: registro.item,
+      BatchNum: registro.lote,
+      StockSala: registro.cantidadSala,
+      StockBodega: registro.cantidadBodega || 0,
+    }))
+
+    console.log('🔵 Enviando datos:', datosParaInsertar.length, 'registros')
+    const resultado = await impostorService.insertarStock(datosParaInsertar)
+    
+    toast.success(
+      '¡Datos guardados!',
+      `${resultado.registrosInsertados} registros insertados correctamente en la base de datos`
+    )
+    console.log('✅ Datos guardados correctamente:', resultado)
+  } catch (error: any) {
+    console.error('❌ Error guardando datos:', error)
+    toast.error(
+      'Error al guardar',
+      error.response?.data?.message || error.message || 'Ocurrió un error al guardar los datos'
+    )
+  } finally {
+    guardandoEnBD.value = false
+  }
+}
+
 const resetearFormulario = () => {
   registros.value = []
   lotesCantidadesSala.value = {}
@@ -776,7 +828,7 @@ const cargarSalas = async () => {
     console.error('❌ Error message:', error.message)
     // Si hay error, NO usar salas por defecto, dejar vacío para que el usuario vea el error
     salasDisponibles.value = []
-    alert('Error al cargar las salas. Por favor, recarga la página.')
+    toast.error('Error al cargar salas', 'Por favor, recarga la página')
   } finally {
     loadingSalas.value = false
   }
