@@ -8,8 +8,9 @@ WORKDIR /app
 # Crear estructura de directorios para que el frontend pueda compilar a ../backend/public
 RUN mkdir -p backend/public
 
-# Copiar archivos de dependencias del frontend
+# Copiar archivos de dependencias del frontend (incluyendo package-lock.json)
 COPY frontend/package*.json ./frontend/
+COPY frontend/package-lock.json ./frontend/
 WORKDIR /app/frontend
 RUN npm ci
 
@@ -26,7 +27,8 @@ WORKDIR /app
 # Copiar archivos de dependencias del backend
 COPY backend/package*.json ./backend/
 WORKDIR /app/backend
-RUN npm ci
+# El backend usa pnpm pero en Docker usamos npm, así que instalamos sin lock file
+RUN npm install
 
 # Copiar código del backend
 COPY backend/ .
@@ -44,7 +46,7 @@ WORKDIR /app
 
 # Instalar solo dependencias de producción
 COPY backend/package*.json ./
-RUN npm ci --only=production && npm cache clean --force
+RUN npm install --omit=dev && npm cache clean --force
 
 # Copiar el backend compilado y el frontend
 COPY --from=backend-builder /app/backend/dist ./dist
