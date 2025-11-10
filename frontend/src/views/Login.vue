@@ -49,6 +49,7 @@
           type="submit"
           className="w-full"
           :disabled="loading"
+          @click="handleLogin"
         >
           {{ loading ? 'Cargando...' : 'Iniciar Sesión' }}
         </Button>
@@ -82,17 +83,23 @@ const logoPath = computed(() => {
 })
 
 const handleLogin = async () => {
+  console.log('🔵 handleLogin llamado', { username: username.value, password: password.value ? '***' : '' })
   loading.value = true
   error.value = ''
 
   try {
-    await authService.login({
+    console.log('🔵 Intentando login...')
+    const result = await authService.login({
       username: username.value,
       password: password.value
     })
+    console.log('✅ Login exitoso', result)
     router.push('/dashboard')
   } catch (err: any) {
-    error.value = err.response?.data?.message || 'Error al iniciar sesión. Verifica tus credenciales.'
+    console.error('❌ Error en login:', err)
+    console.error('❌ Error response:', err.response)
+    console.error('❌ Error message:', err.message)
+    error.value = err.response?.data?.message || err.message || 'Error al iniciar sesión. Verifica tus credenciales.'
   } finally {
     loading.value = false
   }

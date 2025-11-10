@@ -12,17 +12,30 @@ export interface AuthResponse {
   user: {
     id: number
     username: string
+    email?: string
+    region?: string
+    territorio?: number
   }
 }
 
 class AuthService {
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const response = await axios.post<AuthResponse>(`${API_URL}/auth/login`, credentials)
-    if (response.data.access_token) {
-      localStorage.setItem('token', response.data.access_token)
-      localStorage.setItem('user', JSON.stringify(response.data.user))
+    console.log('🔵 AuthService.login llamado', { API_URL, url: `${API_URL}/auth/login`, credentials: { ...credentials, password: '***' } })
+    try {
+      const response = await axios.post<AuthResponse>(`${API_URL}/auth/login`, credentials)
+      console.log('✅ Respuesta del servidor:', response.data)
+      if (response.data.access_token) {
+        localStorage.setItem('token', response.data.access_token)
+        localStorage.setItem('user', JSON.stringify(response.data.user))
+        console.log('✅ Token guardado en localStorage')
+      }
+      return response.data
+    } catch (error: any) {
+      console.error('❌ Error en AuthService.login:', error)
+      console.error('❌ Error response:', error.response)
+      console.error('❌ Error message:', error.message)
+      throw error
     }
-    return response.data
   }
 
   logout() {

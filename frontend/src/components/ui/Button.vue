@@ -8,6 +8,7 @@
     )"
     :type="type"
     :disabled="disabled"
+    @click="$emit('click', $event)"
   >
     <slot />
   </button>
@@ -31,6 +32,10 @@ withDefaults(defineProps<Props>(), {
   disabled: false,
   className: ''
 })
+
+defineEmits<{
+  (e: 'click', event: MouseEvent): void
+}>()
 
 const variants = {
   default: 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600',

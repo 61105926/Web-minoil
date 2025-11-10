@@ -3,6 +3,9 @@ import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './auth/auth.module';
 import { EmpleadosModule } from './empleados/empleados.module';
+import { SalasModule } from './salas/salas.module';
+import { ProductosModule } from './productos/productos.module';
+import { SpaController } from './spa.controller';
 
 @Module({
   imports: [
@@ -20,7 +23,9 @@ import { EmpleadosModule } from './empleados/empleados.module';
     DatabaseModule,
     AuthModule,
     EmpleadosModule,
+    SalasModule,
+    ProductosModule,
   ],
-  // Removido SpaController - ahora se maneja con middleware en main.ts
+  controllers: [SpaController],
 })
 export class AppModule {}

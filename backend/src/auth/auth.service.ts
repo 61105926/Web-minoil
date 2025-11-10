@@ -27,7 +27,21 @@ export class AuthService {
       const usuarioEstatico = usuariosEstaticos.find(u => u.username === username || u.email === username);
       
       if (usuarioEstatico && usuarioEstatico.password === password) {
-        const payload = { username: usuarioEstatico.username, sub: usuarioEstatico.id };
+        // Mapear región a territorio
+        const regionMap: Record<string, number> = {
+          'Santa Cruz': 1,
+          'La Paz': 2,
+          'Cochabamba': 3,
+          'Administrador': 2,
+        };
+        const territorio = regionMap[usuarioEstatico.region] || 2;
+        
+        const payload = { 
+          username: usuarioEstatico.username, 
+          sub: usuarioEstatico.id,
+          region: usuarioEstatico.region,
+          territorio: territorio,
+        };
         try {
           const token = this.jwtService.sign(payload);
           return {
@@ -37,6 +51,7 @@ export class AuthService {
               username: usuarioEstatico.username,
               email: usuarioEstatico.email,
               region: usuarioEstatico.region,
+              territorio: territorio,
             },
           };
         } catch (jwtError) {

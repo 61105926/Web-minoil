@@ -16,16 +16,17 @@ const router = createRouter({
       component: () => import('@/views/Dashboard.vue'),
       meta: { requiresAuth: true }
     },
-    {
-      path: '/empleados',
-      name: 'Empleados',
-      component: () => import('@/views/EmpleadosView.vue'),
-      meta: { requiresAuth: true }
-    },
+   
     {
       path: '/vacaciones',
       name: 'Vacaciones',
       component: () => import('@/views/VacacionesView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/relevamiento-impostor',
+      name: 'RelevamientoImpostor',
+      component: () => import('@/views/RelevamientoImpostorView.vue'),
       meta: { requiresAuth: true }
     },
     {

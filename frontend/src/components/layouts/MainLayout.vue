@@ -138,21 +138,14 @@ const menuItems: Array<{ label: string; path: string; icon: IconName }> = [
     path: '/dashboard',
     icon: 'home'
   },
+ 
+ 
   {
-    label: 'Empleados',
-    path: '/empleados',
-    icon: 'users'
+    label: 'Relevamiento de Impostor',
+    path: '/relevamiento-impostor',
+    icon: 'document'
   },
-  {
-    label: 'Vacaciones',
-    path: '/vacaciones',
-    icon: 'calendar'
-  },
-  {
-    label: 'Reportes',
-    path: '/reportes',
-    icon: 'chart'
-  },
+ 
   {
     label: 'Configuración',
     path: '/configuracion',
