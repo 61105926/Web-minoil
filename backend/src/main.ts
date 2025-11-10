@@ -21,7 +21,7 @@ async function bootstrap() {
     app.useStaticAssets(publicPath);
     console.log('✅ Archivos estáticos configurados');
 
-    const port = process.env.PORT || 8002;
+    const port = process.env.PORT || 8005;
     console.log(`📡 Iniciando servidor en puerto ${port}...`);
     
     await app.listen(port, '0.0.0.0');

@@ -59,16 +59,16 @@ RUN addgroup -g 1001 -S nodejs && \
 
 USER nodejs
 
-# Exponer el puerto 8002
-EXPOSE 8002
+# Exponer el puerto 8005
+EXPOSE 8005
 
 # Variables de entorno por defecto
-ENV PORT=8002
+ENV PORT=8005
 ENV NODE_ENV=production
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:8002/', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+  CMD node -e "require('http').get('http://localhost:8005/', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
 # Comando para iniciar la aplicación
 CMD ["node", "dist/main.js"]

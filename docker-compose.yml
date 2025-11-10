@@ -1,23 +1,21 @@
-version: '3.8'
-
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8002:8002"
+      - "8005:8005"
     environment:
-      - PORT=8002
+      - PORT=8005
       - NODE_ENV=production
-      - HANA_HOST=${HANA_HOST}
+      - HANA_HOST=${HANA_HOST:-}
       - HANA_PORT=${HANA_PORT:-30015}
-      - HANA_USER=${HANA_USER}
-      - HANA_PASS=${HANA_PASS}
-      - JWT_SECRET=${JWT_SECRET}
+      - HANA_USER=${HANA_USER:-}
+      - HANA_PASS=${HANA_PASS:-}
+      - JWT_SECRET=${JWT_SECRET:-mi-secreto-jwt-super-seguro-cambiar-en-produccion}
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8002/"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:8005/', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
       interval: 30s
       timeout: 10s
       retries: 3
