@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 
 @Injectable()
 export class EmpleadosService {
-  constructor(private databaseService: DatabaseService) {}
+  constructor(
+    @Inject(DatabaseService) private databaseService: DatabaseService
+  ) {}
 
   async findAll() {
     try {

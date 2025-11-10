@@ -1,4 +1,4 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleDestroy, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as hana from '@sap/hana-client';
 
@@ -6,7 +6,9 @@ import * as hana from '@sap/hana-client';
 export class DatabaseService implements OnModuleDestroy {
   private connection: any;
 
-  constructor(private configService: ConfigService) {}
+  constructor(
+    @Inject(ConfigService) private configService: ConfigService
+  ) {}
 
   async connect(): Promise<void> {
     if (this.connection) {
