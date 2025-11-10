@@ -5,7 +5,7 @@ import { AuthModule } from './auth/auth.module';
 import { EmpleadosModule } from './empleados/empleados.module';
 import { SalasModule } from './salas/salas.module';
 import { ProductosModule } from './productos/productos.module';
-import { SpaController } from './spa.controller';
+import { SpaModule } from './spa.module';
 
 @Module({
   imports: [
@@ -25,7 +25,7 @@ import { SpaController } from './spa.controller';
     EmpleadosModule,
     SalasModule,
     ProductosModule,
+    SpaModule, // Importar al final para que se registre después de los demás controladores
   ],
-  controllers: [SpaController],
 })
 export class AppModule {}

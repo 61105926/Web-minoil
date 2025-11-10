@@ -13,8 +13,11 @@ export class SalasController {
   async getSalas(@Request() req: any) {
     // Obtener territorio del usuario desde el token JWT
     const territorio = req.user?.territorio || 2; // Por defecto La Paz
+    console.log(`🔵 SalasController: Usuario ${req.user?.username}, territorio: ${territorio}`);
     
-    return await this.salasService.getSalasPorTerritorio(territorio);
+    const salas = await this.salasService.getSalasPorTerritorio(territorio);
+    console.log(`✅ SalasController: Devolviendo ${salas.length} salas`);
+    return salas;
   }
 }
 

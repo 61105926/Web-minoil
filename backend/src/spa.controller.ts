@@ -5,25 +5,13 @@ import { existsSync } from 'fs';
 
 @Controller()
 export class SpaController {
-  // Usar @Get('*') en lugar de @All('*') para solo capturar peticiones GET
-  // Esto evita que intercepte peticiones POST, PUT, DELETE del backend
-  // Las rutas del backend (POST /auth/login, etc.) serán manejadas por sus controladores
+  // Usar @Get('*') para capturar todas las rutas GET no manejadas por otros controladores
+  // En NestJS, los controladores con rutas específicas tienen prioridad sobre @Get('*')
+  // Por lo tanto, /salas será manejado por SalasController antes de llegar aquí
   @Get('*')
   serveSpa(@Req() req: Request, @Res() res: Response) {
-    // Rutas del backend que NO deben ser capturadas por el SPA
-    const backendRoutes = ['/auth', '/empleados', '/salas', '/productos', '/database'];
-    const isBackendRoute = backendRoutes.some(route => req.path.startsWith(route));
-    
-    // Si es una ruta del backend, no debería llegar aquí, pero por seguridad retornamos 404
-    if (isBackendRoute) {
-      return res.status(404).json({ 
-        message: `Cannot GET ${req.path}`,
-        error: 'Not Found',
-        statusCode: 404 
-      });
-    }
-    
-    // Solo servir index.html para rutas GET del SPA (las rutas de API ya fueron procesadas)
+    // Si llegamos aquí, significa que ninguna ruta del backend manejó esta petición GET
+    // Por lo tanto, es seguro servir el index.html del SPA
     const publicPath = join(__dirname, '..', 'public');
     const indexPath = join(publicPath, 'index.html');
     

@@ -747,27 +747,36 @@ const cargarSalas = async () => {
   loadingSalas.value = true
   salasDisponibles.value = [] // Limpiar salas anteriores
   try {
+    console.log('🔵 Iniciando carga de salas...')
     const salas = await salasService.getSalas()
-    console.log('Salas recibidas:', salas.length)
+    console.log('✅ Salas recibidas del servidor:', salas)
+    console.log('✅ Total de salas recibidas:', salas.length)
+    
+    if (!salas || salas.length === 0) {
+      console.warn('⚠️ No se recibieron salas del servidor')
+      return
+    }
     
     // Eliminar duplicados por código
     const salasUnicas = new Map<string, Sala>()
     salas.forEach((sala) => {
       if (sala.codigo && !salasUnicas.has(sala.codigo)) {
         salasUnicas.set(sala.codigo, sala)
+      } else if (!sala.codigo) {
+        console.warn('⚠️ Sala sin código:', sala)
       }
     })
     
     salasDisponibles.value = Array.from(salasUnicas.values())
-    console.log('Salas únicas:', salasDisponibles.value.length)
+    console.log('✅ Salas únicas después de eliminar duplicados:', salasDisponibles.value.length)
+    console.log('✅ Salas disponibles:', salasDisponibles.value.map(s => s.nombre))
   } catch (error: any) {
-    console.error('Error cargando salas:', error)
-    // Si hay error, usar salas por defecto
-    salasDisponibles.value = [
-      { codigo: 'DEMO-1', nombre: 'Hipermaxi Los Pinos', alias: 'Hipermaxi Los Pinos', glblLocNum: '001' },
-      { codigo: 'DEMO-2', nombre: 'Hipermaxi Calacoto', alias: 'Hipermaxi Calacoto', glblLocNum: '002' },
-      { codigo: 'DEMO-3', nombre: 'Hipermaxi Zona Sur', alias: 'Hipermaxi Zona Sur', glblLocNum: '003' },
-    ]
+    console.error('❌ Error cargando salas:', error)
+    console.error('❌ Error response:', error.response)
+    console.error('❌ Error message:', error.message)
+    // Si hay error, NO usar salas por defecto, dejar vacío para que el usuario vea el error
+    salasDisponibles.value = []
+    alert('Error al cargar las salas. Por favor, recarga la página.')
   } finally {
     loadingSalas.value = false
   }

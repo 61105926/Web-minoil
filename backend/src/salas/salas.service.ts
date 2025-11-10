@@ -9,6 +9,7 @@ export class SalasService {
 
   async getSalasPorTerritorio(territorio: number): Promise<any[]> {
     try {
+      console.log(`🔵 Obteniendo salas para territorio: ${territorio}`);
       const query = `
         SELECT 
           c."CardCode",
@@ -24,15 +25,24 @@ export class SalasService {
       `;
 
       const salas = await this.databaseService.query(query, [territorio]);
-      return salas.map((sala: any) => ({
-        codigo: sala.CardCode,
-        nombre: sala.CardName,
-        alias: sala.AliasName,
-        glblLocNum: sala.GlblLocNum,
-      }));
+      console.log(`✅ Salas obtenidas de BD: ${salas?.length || 0}`);
+      
+      if (salas && salas.length > 0) {
+        return salas.map((sala: any) => ({
+          codigo: sala.CardCode,
+          nombre: sala.CardName,
+          alias: sala.AliasName,
+          glblLocNum: sala.GlblLocNum,
+        }));
+      } else {
+        // Si no hay resultados, usar datos demo
+        console.log('⚠️ No se encontraron salas en BD, usando datos demo');
+        return this.getSalasDemo(territorio);
+      }
     } catch (error: any) {
-      console.error('Error obteniendo salas:', error);
+      console.error('❌ Error obteniendo salas:', error);
       // Si hay error con la BD, devolver datos de ejemplo según territorio
+      console.log(`📦 Devolviendo datos demo para territorio: ${territorio}`);
       return this.getSalasDemo(territorio);
     }
   }
@@ -67,6 +77,7 @@ export class SalasService {
     };
 
     const salas = salasPorTerritorio[territorio] || [];
+    console.log(`📦 Generando ${salas.length} salas demo para territorio ${territorio}`);
     return salas.map((nombre, index) => ({
       codigo: `DEMO-${territorio}-${index + 1}`,
       nombre,
