@@ -10,8 +10,8 @@ echo ""
 echo "📂 Directorio: $(pwd)"
 echo ""
 
-# Verificar si public existe
-if [ ! -d "public/index.html" ]; then
+# Verificar si public/index.html existe
+if [ ! -f "public/index.html" ]; then
     echo "⚠️  El frontend no está compilado"
     echo "   Ejecutando: cd ../frontend && npm run build"
     echo ""
