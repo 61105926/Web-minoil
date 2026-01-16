@@ -678,8 +678,8 @@ const handleSeleccionarSala = async (sala: Sala) => {
     // Si hay productos, ir a la fase de seleccionar productos, sino volver a seleccionar
     if (productosBase.value.length > 0) {
       console.log('✅ Hay productos, cambiando a fase seleccionar-productos')
-      // Seleccionar todos los productos por defecto
-      productosSeleccionados.value = new Set(productosBase.value.map(p => p.id))
+      // Iniciar con ningún producto seleccionado - el usuario debe seleccionarlos manualmente
+      productosSeleccionados.value = new Set()
       fase.value = 'seleccionar-productos'
     } else {
       console.warn('⚠️ No hay productos, volviendo a seleccionar sala')
@@ -923,7 +923,7 @@ const cargarProductos = async (cardCode: string) => {
           sala: salaSeleccionada.value || '',
           lotes: lotesConDatos.map((lote) => ({
             lote: lote.lote.trim(),
-            fechaVencimiento: lote.fechaFactura || '',
+            fechaVencimiento: lote.fechaVencimiento || '',
             stockSala: lote.cantidadVendida || 0,
             stockBodega: 0, // No tenemos esta info en la query
             indiceOriginal: lote.indiceOriginal, // Guardar índice original

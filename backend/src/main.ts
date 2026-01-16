@@ -12,6 +12,13 @@ async function bootstrap() {
     const app = await NestFactory.create<NestExpressApplication>(AppModule);
     console.log('✅ AppModule creado');
 
+    // Habilitar CORS para permitir peticiones del frontend
+    app.enableCors({
+      origin: true, // Permitir todos los orígenes en desarrollo
+      credentials: true,
+    });
+    console.log('✅ CORS habilitado');
+
     // Validación global
     app.useGlobalPipes(new ValidationPipe());
     console.log('✅ Pipes configurados');

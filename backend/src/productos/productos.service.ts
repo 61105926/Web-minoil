@@ -5,6 +5,7 @@ export interface LoteProducto {
   lote: string;
   cantidadVendida: number;
   fechaFactura: string;
+  fechaVencimiento: string;
   numeroFactura: number;
 }
 
@@ -31,6 +32,7 @@ export class ProductosService {
                 D."ItemCode"       AS CodigoProducto,
                 I."ItemName"       AS NombreProducto,
                 L."BatchNum"       AS Lote,
+                AL."ExpDate"       AS FechaVencimiento,
                 L."Quantity"       AS CantidadVendida,
                 A."DocDate"        AS FechaFactura,
                 A."DocNum"         AS NumeroFactura,
@@ -46,6 +48,9 @@ export class ProductosService {
                 ON L."BaseType" = 13
                 AND L."BaseEntry" = D."DocEntry"
                 AND L."BaseLinNum" = D."LineNum"
+            INNER JOIN "BD_MINOIL_PROD"."OBTN" AL 
+                ON AL."DistNumber" = L."BatchNum"
+                AND AL."ItemCode" = L."ItemCode"
             WHERE 
                 LOWER(I."ItemName") LIKE '%impost%'
                 AND A."CardCode" = ?
@@ -68,6 +73,7 @@ export class ProductosService {
         const lote = row.LOTE || row.Lote;
         const cantidadVendida = row.CANTIDADVENDIDA || row.CantidadVendida;
         const fechaFactura = row.FECHAFACTURA || row.FechaFactura;
+        const fechaVencimiento = row.FECHAVENCIMIENTO || row.FechaVencimiento;
         const numeroFactura = row.NUMEROFACTURA || row.NumeroFactura;
 
         if (!codigo || !nombre) {
@@ -93,6 +99,7 @@ export class ProductosService {
             lote: String(lote).trim(),
             cantidadVendida: cantidadVendida ? parseFloat(String(cantidadVendida)) : 0,
             fechaFactura: this.formatearFecha(fechaFactura),
+            fechaVencimiento: this.formatearFecha(fechaVencimiento),
             numeroFactura: numeroFactura ? parseInt(String(numeroFactura)) : 0,
           });
         }
@@ -115,6 +122,7 @@ export class ProductosService {
               lote: '',
               cantidadVendida: 0,
               fechaFactura: '',
+              fechaVencimiento: '',
               numeroFactura: 0,
             });
           }
@@ -152,63 +160,63 @@ export class ProductosService {
         codigoProducto: '1',
         nombreProducto: 'LECHE VEG/BANANA 946 ML',
         lotes: [
-          { lote: 'LT240115A', cantidadVendida: 12, fechaFactura: '2025-01-15', numeroFactura: 0 },
-          { lote: 'LT240110C', cantidadVendida: 8, fechaFactura: '2025-01-10', numeroFactura: 0 },
-          { lote: 'LT240120E', cantidadVendida: 15, fechaFactura: '2025-01-20', numeroFactura: 0 },
+          { lote: 'LT240115A', cantidadVendida: 12, fechaFactura: '2025-01-15', fechaVencimiento: '2025-06-15', numeroFactura: 0 },
+          { lote: 'LT240110C', cantidadVendida: 8, fechaFactura: '2025-01-10', fechaVencimiento: '2025-06-10', numeroFactura: 0 },
+          { lote: 'LT240120E', cantidadVendida: 15, fechaFactura: '2025-01-20', fechaVencimiento: '2025-06-20', numeroFactura: 0 },
         ],
       },
       {
         codigoProducto: '2',
         nombreProducto: 'SIXPACK MIX LECHES 140 ML',
         lotes: [
-          { lote: 'SP240120B', cantidadVendida: 18, fechaFactura: '2025-01-20', numeroFactura: 0 },
-          { lote: 'SP240125D', cantidadVendida: 24, fechaFactura: '2025-01-25', numeroFactura: 0 },
-          { lote: 'SP240130F', cantidadVendida: 20, fechaFactura: '2025-01-30', numeroFactura: 0 },
+          { lote: 'SP240120B', cantidadVendida: 18, fechaFactura: '2025-01-20', fechaVencimiento: '2025-06-20', numeroFactura: 0 },
+          { lote: 'SP240125D', cantidadVendida: 24, fechaFactura: '2025-01-25', fechaVencimiento: '2025-06-25', numeroFactura: 0 },
+          { lote: 'SP240130F', cantidadVendida: 20, fechaFactura: '2025-01-30', fechaVencimiento: '2025-06-30', numeroFactura: 0 },
         ],
       },
       {
         codigoProducto: '3',
         nombreProducto: 'LECHE VEG/CHOCOLATE 946 ML',
         lotes: [
-          { lote: 'LT240118E', cantidadVendida: 15, fechaFactura: '2025-01-18', numeroFactura: 0 },
-          { lote: 'LT240122G', cantidadVendida: 10, fechaFactura: '2025-01-22', numeroFactura: 0 },
-          { lote: 'LT240128H', cantidadVendida: 18, fechaFactura: '2025-01-28', numeroFactura: 0 },
+          { lote: 'LT240118E', cantidadVendida: 15, fechaFactura: '2025-01-18', fechaVencimiento: '2025-06-18', numeroFactura: 0 },
+          { lote: 'LT240122G', cantidadVendida: 10, fechaFactura: '2025-01-22', fechaVencimiento: '2025-06-22', numeroFactura: 0 },
+          { lote: 'LT240128H', cantidadVendida: 18, fechaFactura: '2025-01-28', fechaVencimiento: '2025-06-28', numeroFactura: 0 },
         ],
       },
       {
         codigoProducto: '4',
         nombreProducto: 'LECHE VEG/VAINILLA 946 ML',
         lotes: [
-          { lote: 'LT240122F', cantidadVendida: 20, fechaFactura: '2025-01-22', numeroFactura: 0 },
-          { lote: 'LT240128G', cantidadVendida: 10, fechaFactura: '2025-01-28', numeroFactura: 0 },
-          { lote: 'LT240202I', cantidadVendida: 16, fechaFactura: '2025-02-02', numeroFactura: 0 },
+          { lote: 'LT240122F', cantidadVendida: 20, fechaFactura: '2025-01-22', fechaVencimiento: '2025-06-22', numeroFactura: 0 },
+          { lote: 'LT240128G', cantidadVendida: 10, fechaFactura: '2025-01-28', fechaVencimiento: '2025-06-28', numeroFactura: 0 },
+          { lote: 'LT240202I', cantidadVendida: 16, fechaFactura: '2025-02-02', fechaVencimiento: '2025-07-02', numeroFactura: 0 },
         ],
       },
       {
         codigoProducto: '5',
         nombreProducto: 'LECHE VEG/FRESA 946 ML',
         lotes: [
-          { lote: 'LT240112H', cantidadVendida: 14, fechaFactura: '2025-01-12', numeroFactura: 0 },
-          { lote: 'LT240118J', cantidadVendida: 12, fechaFactura: '2025-01-18', numeroFactura: 0 },
-          { lote: 'LT240125K', cantidadVendida: 22, fechaFactura: '2025-01-25', numeroFactura: 0 },
+          { lote: 'LT240112H', cantidadVendida: 14, fechaFactura: '2025-01-12', fechaVencimiento: '2025-06-12', numeroFactura: 0 },
+          { lote: 'LT240118J', cantidadVendida: 12, fechaFactura: '2025-01-18', fechaVencimiento: '2025-06-18', numeroFactura: 0 },
+          { lote: 'LT240125K', cantidadVendida: 22, fechaFactura: '2025-01-25', fechaVencimiento: '2025-06-25', numeroFactura: 0 },
         ],
       },
       {
         codigoProducto: '6',
         nombreProducto: 'PACK LECHES SURTIDO 250 ML',
         lotes: [
-          { lote: 'PK240116I', cantidadVendida: 22, fechaFactura: '2025-01-16', numeroFactura: 0 },
-          { lote: 'PK240120J', cantidadVendida: 16, fechaFactura: '2025-01-20', numeroFactura: 0 },
-          { lote: 'PK240126L', cantidadVendida: 28, fechaFactura: '2025-01-26', numeroFactura: 0 },
+          { lote: 'PK240116I', cantidadVendida: 22, fechaFactura: '2025-01-16', fechaVencimiento: '2025-06-16', numeroFactura: 0 },
+          { lote: 'PK240120J', cantidadVendida: 16, fechaFactura: '2025-01-20', fechaVencimiento: '2025-06-20', numeroFactura: 0 },
+          { lote: 'PK240126L', cantidadVendida: 28, fechaFactura: '2025-01-26', fechaVencimiento: '2025-06-26', numeroFactura: 0 },
         ],
       },
       {
         codigoProducto: '7',
         nombreProducto: 'LECHE VEG/COCO 946 ML',
         lotes: [
-          { lote: 'LT240125K', cantidadVendida: 18, fechaFactura: '2025-01-25', numeroFactura: 0 },
-          { lote: 'LT240130M', cantidadVendida: 14, fechaFactura: '2025-01-30', numeroFactura: 0 },
-          { lote: 'LT240205N', cantidadVendida: 20, fechaFactura: '2025-02-05', numeroFactura: 0 },
+          { lote: 'LT240125K', cantidadVendida: 18, fechaFactura: '2025-01-25', fechaVencimiento: '2025-06-25', numeroFactura: 0 },
+          { lote: 'LT240130M', cantidadVendida: 14, fechaFactura: '2025-01-30', fechaVencimiento: '2025-06-30', numeroFactura: 0 },
+          { lote: 'LT240205N', cantidadVendida: 20, fechaFactura: '2025-02-05', fechaVencimiento: '2025-07-05', numeroFactura: 0 },
         ],
       },
     ];

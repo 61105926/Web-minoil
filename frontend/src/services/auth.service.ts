@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 // En producción, si no hay VITE_API_URL, usar ruta relativa (mismo servidor)
-const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3000')
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:8005')
 
 export interface LoginCredentials {
   username: string

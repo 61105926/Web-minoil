@@ -17,11 +17,11 @@ export default defineConfig({
   server: {
     proxy: {
       '/auth': {
-        target: 'http://localhost:3000',
+        target: 'http://localhost:8005',
         changeOrigin: true,
       },
       '/empleados': {
-        target: 'http://localhost:3000',
+        target: 'http://localhost:8005',
         changeOrigin: true,
       },
     },
