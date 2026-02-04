@@ -616,6 +616,22 @@ const registrosAgrupados = computed(() => {
 })
 
 const formatearFecha = (fecha: string) => {
+  if (!fecha) return ''
+  // Parsear la fecha como fecha local para evitar problemas de zona horaria
+  // La fecha viene en formato "YYYY-MM-DD" desde el backend
+  const partes = fecha.split('-')
+  if (partes.length === 3) {
+    const año = parseInt(partes[0], 10)
+    const mes = parseInt(partes[1], 10) - 1 // Los meses en Date son 0-indexados
+    const dia = parseInt(partes[2], 10)
+    const fechaLocal = new Date(año, mes, dia)
+    return fechaLocal.toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    })
+  }
+  // Fallback si el formato no es el esperado
   return new Date(fecha).toLocaleDateString('es-ES', {
     day: '2-digit',
     month: 'short',
