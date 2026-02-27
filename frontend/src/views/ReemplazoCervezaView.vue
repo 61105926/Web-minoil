@@ -134,117 +134,169 @@
               </svg>
               {{ enviando ? 'Enviando...' : 'Guardar Registro' }}
             </button>
+
+            <!-- Botón Ver Registros (Solo si hay sala y registros) -->
+            <button
+              v-if="salaSeleccionada?.codigo && registros.length > 0"
+              type="button"
+              @click="modalAbierto = true"
+              class="w-full h-12 mt-2 rounded-xl bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 font-bold text-base shadow border border-blue-100 dark:border-gray-600 flex items-center justify-center gap-2 transition-all hover:bg-gray-50 dark:hover:bg-gray-600 active:scale-[0.98]"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+              </svg>
+              Ver Registros ({{ registros.length }})
+            </button>
           </div>
         </div>
 
-        <div v-if="salaSeleccionada?.codigo && registros.length > 0" class="w-full max-w-md mt-8 pb-12">
-          <div class="flex justify-between items-end mb-6 px-1">
-            <div>
-              <h2 class="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
-                Registros
-              </h2>
-              <p class="text-sm text-gray-500 dark:text-gray-400">Total: {{ registros.length }} items</p>
-            </div>
-            <button
-              @click="descargarPDF"
-              class="px-5 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-full text-sm font-bold shadow-lg shadow-red-500/30 transition-all flex items-center gap-2 active:scale-95"
-              :disabled="generandoPDF"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <span class="hidden sm:inline">{{ generandoPDF ? 'Creando...' : 'Descargar' }}</span>
-              <span class="sm:hidden">PDF</span>
-            </button>
-          </div>
+        <!-- Flotante inferior fijo en móvil (alternativa de acceso rápido) -->
+        <div v-if="salaSeleccionada?.codigo && registros.length > 0" class="sm:hidden fixed bottom-6 right-6 z-40">
+           <button
+             @click="modalAbierto = true"
+             class="w-14 h-14 bg-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-blue-700 active:scale-95 transition-transform"
+           >
+             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+             </svg>
+             <span class="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 transform translate-x-1/4 -translate-y-1/4 bg-red-600 rounded-full">{{ registros.length }}</span>
+           </button>
+        </div>
 
-          <!-- Contenedor para el PDF (Oculto en pantalla normal pero se usa para capturar) -->
-          <div style="display: none;">
-            <div id="pdf-content" class="p-8 bg-white text-black w-[800px]">
-              <div class="text-center mb-8 border-b-2 border-gray-200 pb-4">
-                <h1 class="text-3xl font-bold text-gray-800 uppercase tracking-wide">
-                  Reporte de Reemplazo de Cerveza
-                </h1>
-                <p class="text-gray-600 mt-2 font-medium text-lg">Sala: {{ salaSeleccionada?.glblLocNum }} - {{ salaSeleccionada?.alias || salaSeleccionada?.nombre }}</p>
-                <p class="text-sm text-gray-500 mt-1">Generado: {{ new Date().toLocaleString() }}</p>
-              </div>
-
-              <table class="w-full text-sm text-left border-collapse border border-gray-300">
-                <thead class="bg-gray-100 text-gray-800">
-                  <tr>
-                    <th class="px-4 py-3 border border-gray-300 font-bold">Producto</th>
-                    <th class="px-4 py-3 border border-gray-300 font-bold text-center">Cant.</th>
-                    <th class="px-4 py-3 border border-gray-300 font-bold">Vencimiento</th>
-                    <th class="px-4 py-3 border border-gray-300 font-bold">Observaciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="reg in registros" :key="reg.id" class="hover:bg-gray-50">
-                    <td class="px-4 py-3 border border-gray-300 font-medium">{{ reg.ItemName }} <br><span class="text-xs text-gray-500">{{ reg.ItemCode }}</span></td>
-                    <td class="px-4 py-3 border border-gray-300 text-center font-bold">{{ reg.stock }}</td>
-                    <td class="px-4 py-3 border border-gray-300">{{ formatearFecha(reg.expiration_date) }}</td>
-                    <td class="px-4 py-3 border border-gray-300">{{ formatearObservacion(reg.observations) }}</td>
-                  </tr>
-                </tbody>
-              </table>
-              <div class="mt-8 text-right text-xs text-gray-400">
-                Documento autogenerado por Sistema MinOil
-              </div>
-            </div>
-          </div>
-
-          <!-- Vista de Tarjetas Móvil -->
-          <div class="space-y-4">
-            <div 
-              v-for="reg in registros" 
-              :key="reg.id" 
-              class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-gray-700 relative overflow-hidden transition-all hover:-translate-y-1 hover:shadow-xl"
-            >
-              <!-- Color de borde izquierdo indicador -->
-              <div class="absolute left-0 top-0 bottom-0 w-1.5" :class="getColorByObs(reg.observations)"></div>
-
-              <div class="p-5 pl-6 pr-12 text-left">
-                <h3 class="font-extrabold text-gray-900 dark:text-white leading-tight mb-1">
-                  {{ reg.ItemName || 'Producto sin nombre' }}
-                </h3>
-                <p class="text-xs font-mono text-gray-400 dark:text-gray-500 mb-4">{{ reg.ItemCode || 'Sin código' }}</p>
-                
-                <div class="flex flex-wrap gap-4 text-sm justify-between">
-                  <div class="flex flex-col">
-                    <span class="text-gray-400 dark:text-gray-500 text-[11px] uppercase font-bold tracking-wider mb-0.5">Cantidad</span>
-                    <span class="font-black text-2xl text-blue-600 dark:text-blue-400">{{ reg.stock }}</span>
-                  </div>
-                  <div class="flex flex-col text-right">
-                    <span class="text-gray-400 dark:text-gray-500 text-[11px] uppercase font-bold tracking-wider mb-0.5">Vencimiento</span>
-                    <span class="font-semibold text-gray-700 dark:text-gray-200 mt-1">{{ formatearFecha(reg.expiration_date) }}</span>
-                  </div>
-                </div>
-
-                <div class="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700/50">
-                  <span class="inline-flex px-2.5 py-1 text-xs font-bold rounded-md bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600/50">
-                    {{ formatearObservacion(reg.observations) }}
-                  </span>
-                </div>
-              </div>
-
-              <button
-                @click="eliminarRegistro(reg.id)"
-                class="absolute top-4 right-4 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/40 p-2.5 rounded-full transition-all disabled:opacity-50 group"
-                title="Eliminar registro"
-                :disabled="eliminando === reg.id"
-              >
-                <svg class="h-5 w-5 transform group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
-            </div>
+        <!-- Modal de Registros -->
+        <Transition name="fade">
+          <div v-if="modalAbierto" class="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4">
+            <!-- Fondo oscuro -->
+            <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" @click="modalAbierto = false"></div>
             
-            <div v-if="loadingRegistros" class="p-4 text-center text-gray-500 dark:text-gray-400 text-sm">
-              <svg class="animate-spin h-5 w-5 mx-auto mb-2 text-blue-600" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Cargando registros...
+            <!-- Contenido Modal -->
+            <Transition name="slide-up">
+              <div v-if="modalAbierto" class="relative w-full max-w-lg max-h-[90vh] sm:max-h-[85vh] bg-gray-50 dark:bg-gray-900 rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+                <!-- Mango de arrastre falso para móvil -->
+                <div class="sm:hidden w-full flex justify-center pt-3 pb-1" @click="modalAbierto = false">
+                  <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+                </div>
+
+                <!-- Cabecera Modal -->
+                <div class="flex justify-between items-center px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800 shrink-0">
+                  <div>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
+                      Registros Guardados
+                    </h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ salaSeleccionada?.alias || salaSeleccionada?.nombre }}</p>
+                  </div>
+                  
+                  <div class="flex items-center gap-2">
+                    <button
+                      @click="descargarPDF"
+                      class="px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl text-sm font-bold shadow-md shadow-red-500/20 active:scale-95 transition-all flex items-center gap-2"
+                      :disabled="generandoPDF"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <span class="hidden sm:inline">{{ generandoPDF ? 'Creando...' : 'Descargar' }}</span>
+                      <span class="sm:hidden">PDF</span>
+                    </button>
+                    
+                    <button @click="modalAbierto = false" class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 bg-gray-100 dark:bg-gray-700/50 rounded-full transition-colors hidden sm:block">
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Lista de Registros -->
+                <div class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+                  <div 
+                    v-for="reg in registros" 
+                    :key="reg.id" 
+                    class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 relative overflow-hidden transition-all hover:-translate-y-1 hover:shadow-md"
+                  >
+                    <!-- Color de borde izquierdo indicador -->
+                    <div class="absolute left-0 top-0 bottom-0 w-1.5" :class="getColorByObs(reg.observations)"></div>
+
+                    <div class="p-5 pl-6 pr-12 text-left">
+                      <h3 class="font-extrabold text-gray-900 dark:text-white leading-tight mb-1">
+                        {{ reg.ItemName || 'Producto sin nombre' }}
+                      </h3>
+                      <p class="text-xs font-mono text-gray-400 dark:text-gray-500 mb-4">{{ reg.ItemCode || 'Sin código' }}</p>
+                      
+                      <div class="flex flex-wrap gap-4 text-sm justify-between">
+                        <div class="flex flex-col">
+                          <span class="text-gray-400 dark:text-gray-500 text-[11px] uppercase font-bold tracking-wider mb-0.5">Cantidad</span>
+                          <span class="font-black text-2xl text-blue-600 dark:text-blue-400">{{ reg.stock }}</span>
+                        </div>
+                        <div class="flex flex-col text-right">
+                          <span class="text-gray-400 dark:text-gray-500 text-[11px] uppercase font-bold tracking-wider mb-0.5">Vencimiento</span>
+                          <span class="font-semibold text-gray-700 dark:text-gray-200 mt-1">{{ formatearFecha(reg.expiration_date) }}</span>
+                        </div>
+                      </div>
+
+                      <div class="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700/50">
+                        <span class="inline-flex px-2.5 py-1 text-xs font-bold rounded-md bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600/50">
+                          {{ formatearObservacion(reg.observations) }}
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      @click="eliminarRegistro(reg.id)"
+                      class="absolute top-4 right-4 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/40 p-2 rounded-full transition-all disabled:opacity-50 group"
+                      title="Eliminar registro"
+                      :disabled="eliminando === reg.id"
+                    >
+                      <svg class="h-5 w-5 transform group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                  
+                  <div v-if="loadingRegistros" class="p-8 text-center text-gray-500 dark:text-gray-400 text-sm">
+                    <svg class="animate-spin h-6 w-6 mx-auto mb-3 text-blue-600" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Cargando registros...
+                  </div>
+                  <!-- Padding final for mobile scroll -->
+                  <div class="h-6 sm:h-2"></div>
+                </div>
+              </div>
+            </Transition>
+          </div>
+        </Transition>
+
+        <!-- Contenedor para el PDF (Oculto en pantalla normal pero se usa para capturar) -->
+        <div style="display: none;">
+          <div id="pdf-content" class="p-8 bg-white text-black w-[800px]">
+            <div class="text-center mb-8 border-b-2 border-gray-200 pb-4">
+              <h1 class="text-3xl font-bold text-gray-800 uppercase tracking-wide">
+                Reporte de Reemplazo de Cerveza
+              </h1>
+              <p class="text-gray-600 mt-2 font-medium text-lg">Sala: {{ salaSeleccionada?.glblLocNum }} - {{ salaSeleccionada?.alias || salaSeleccionada?.nombre }}</p>
+              <p class="text-sm text-gray-500 mt-1">Generado: {{ new Date().toLocaleString() }}</p>
+            </div>
+
+            <table class="w-full text-sm text-left border-collapse border border-gray-300">
+              <thead class="bg-gray-100 text-gray-800">
+                <tr>
+                  <th class="px-4 py-3 border border-gray-300 font-bold">Producto</th>
+                  <th class="px-4 py-3 border border-gray-300 font-bold text-center">Cant.</th>
+                  <th class="px-4 py-3 border border-gray-300 font-bold">Vencimiento</th>
+                  <th class="px-4 py-3 border border-gray-300 font-bold">Observaciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="reg in registros" :key="reg.id" class="hover:bg-gray-50">
+                  <td class="px-4 py-3 border border-gray-300 font-medium">{{ reg.ItemName }} <br><span class="text-xs text-gray-500">{{ reg.ItemCode }}</span></td>
+                  <td class="px-4 py-3 border border-gray-300 text-center font-bold">{{ reg.stock }}</td>
+                  <td class="px-4 py-3 border border-gray-300">{{ formatearFecha(reg.expiration_date) }}</td>
+                  <td class="px-4 py-3 border border-gray-300">{{ formatearObservacion(reg.observations) }}</td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="mt-8 text-right text-xs text-gray-400">
+              Documento autogenerado por Sistema MinOil
             </div>
           </div>
         </div>
@@ -285,6 +337,24 @@
 .custom-multiselect .multiselect__spinner {
   @apply h-[40px] bg-transparent;
 }
+
+/* Transiciones Móviles para Modal */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.slide-up-enter-from,
+.slide-up-leave-to {
+  transform: translateY(100%);
+}
 </style>
 
 <script setup lang="ts">
@@ -323,6 +393,7 @@ const loadingRegistros = ref(false)
 const enviando = ref(false)
 const eliminando = ref<number | null>(null)
 const generandoPDF = ref(false)
+const modalAbierto = ref(false)
 
 const registros = ref<ReemplazoCervezaRecord[]>([])
 
@@ -426,6 +497,11 @@ const eliminarRegistro = async (id: number) => {
   try {
     await reemplazoCervezaService.eliminarRegistro(id)
     toast.success('Eliminado', 'Registro eliminado correctamente')
+    // Si la lista queda vacía, cerramos el modal
+    if (registros.value.length === 1) {
+      modalAbierto.value = false
+    }
+    
     if (salaSeleccionada.value?.codigo) {
       await cargarRegistros(salaSeleccionada.value.codigo)
     }
