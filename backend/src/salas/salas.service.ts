@@ -5,7 +5,7 @@ import { DatabaseService } from '../database/database.service';
 export class SalasService {
   constructor(
     @Inject(DatabaseService) private databaseService: DatabaseService,
-  ) {}
+  ) { }
 
   async getSalasPorTerritorio(territorio: number): Promise<any[]> {
     try {
@@ -26,14 +26,21 @@ export class SalasService {
 
       const salas = await this.databaseService.query(query, [territorio]);
       console.log(`✅ Salas obtenidas de BD: ${salas?.length || 0}`);
-      
+
       if (salas && salas.length > 0) {
-        return salas.map((sala: any) => ({
-          codigo: sala.CardCode,
-          nombre: sala.CardName,
-          alias: sala.AliasName,
-          glblLocNum: sala.GlblLocNum,
-        }));
+        return salas.map((row: any) => {
+          const getVal = (key: string) => {
+            const foundKey = Object.keys(row).find(k => k.toLowerCase() === key.toLowerCase());
+            return foundKey ? row[foundKey] : null;
+          };
+
+          return {
+            codigo: getVal('CardCode'),
+            nombre: getVal('CardName'),
+            alias: getVal('AliasName'),
+            glblLocNum: getVal('GlblLocNum'),
+          };
+        });
       } else {
         // Si no hay resultados, usar datos demo
         console.log('⚠️ No se encontraron salas en BD, usando datos demo');

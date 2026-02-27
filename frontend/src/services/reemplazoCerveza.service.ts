@@ -12,6 +12,17 @@ export interface ReemplazoCervezaData {
   observations?: string | null
 }
 
+export interface ReemplazoCervezaRecord {
+  id: number
+  cardCode: string
+  ItemCode: string
+  ItemName: string
+  stock: number
+  expiration_date: string | null
+  observations: string | null
+  created_at: string
+}
+
 class ReemplazoCervezaService {
   async crearReemplazo(data: ReemplazoCervezaData): Promise<{ success: boolean; message: string }> {
     const token = authService.getToken()
@@ -29,6 +40,32 @@ class ReemplazoCervezaService {
       }
     )
 
+    return response.data
+  }
+
+  async getRegistrosPorSala(cardCode: string): Promise<ReemplazoCervezaRecord[]> {
+    const token = authService.getToken()
+    if (!token) throw new Error('No autenticado')
+
+    const response = await axios.get<ReemplazoCervezaRecord[]>(
+      `${API_URL}/reemplazo-cerveza/sala/${encodeURIComponent(cardCode)}`,
+      {
+        headers: { Authorization: `Bearer ${token}` }
+      }
+    )
+    return response.data
+  }
+
+  async eliminarRegistro(id: number): Promise<{ success: boolean; message: string }> {
+    const token = authService.getToken()
+    if (!token) throw new Error('No autenticado')
+
+    const response = await axios.delete<{ success: boolean; message: string }>(
+      `${API_URL}/reemplazo-cerveza/${id}`,
+      {
+        headers: { Authorization: `Bearer ${token}` }
+      }
+    )
     return response.data
   }
 }
