@@ -503,6 +503,8 @@ interface LoteInfo {
 
 interface ItemReposicion {
   id: string
+  /** Código del producto (ItemCode SAP) para guardar en BD */
+  codigoProducto: string
   item: string
   sala: string
   lotes: LoteInfo[]
@@ -510,6 +512,7 @@ interface ItemReposicion {
 
 interface RegistroReposicion {
   item: string
+  itemCode: string
   sala: string
   lote: string
   fechaVencimiento: string
@@ -763,6 +766,7 @@ const handleRespuestaBodega = (tieneBodega: boolean) => {
         const indiceLote = lote.indiceOriginal !== undefined ? lote.indiceOriginal : producto.lotes.indexOf(lote)
         nuevosRegistros.push({
           item: producto.item,
+          itemCode: producto.codigoProducto,
           sala: salaSeleccionada.value!,
           lote: lote.lote,
           fechaVencimiento: lote.fechaVencimiento,
@@ -789,6 +793,7 @@ const handleSiguienteBodega = () => {
     const indiceLote = lote.indiceOriginal !== undefined ? lote.indiceOriginal : itemActual.lotes.indexOf(lote)
     registros.value.push({
       item: itemActual.item,
+      itemCode: itemActual.codigoProducto,
       sala: salaSeleccionada.value!,
       lote: lote.lote,
       fechaVencimiento: lote.fechaVencimiento,
@@ -825,7 +830,7 @@ const guardarEnBaseDatos = async () => {
     // Transformar los registros al formato esperado por la API
     const datosParaInsertar = registros.value.map(registro => ({
       CardCode: salaSeleccionadaObj.value!.codigo,
-      ItemCode: registro.item,
+      ItemCode: registro.itemCode,
       BatchNum: registro.lote,
       StockSala: registro.cantidadSala,
       StockBodega: registro.cantidadBodega || 0,
@@ -935,6 +940,7 @@ const cargarProductos = async (cardCode: string) => {
         
         return {
           id: producto.codigoProducto || String(index + 1),
+          codigoProducto: String(producto.codigoProducto ?? '').trim() || String(index + 1),
           item: producto.nombreProducto.trim(),
           sala: salaSeleccionada.value || '',
           lotes: lotesConDatos.map((lote) => ({

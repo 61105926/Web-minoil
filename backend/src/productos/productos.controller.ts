@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards, Request, Param, Inject } from '@nestjs/common';
+import { Controller, Get, UseGuards, Request, Param, Query, Inject } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ProductosService } from './productos.service';
 
@@ -7,14 +7,20 @@ import { ProductosService } from './productos.service';
 export class ProductosController {
   constructor(
     @Inject(ProductosService) private productosService: ProductosService,
-  ) {}
+  ) { }
+
+  @Get('cervezas')
+  async getCervezas() {
+    return await this.productosService.getCervezas();
+  }
 
   @Get('sala/:cardCode')
   async getProductosPorSala(
     @Param('cardCode') cardCode: string,
+    @Query('tipo') tipo: string,
     @Request() req: any,
   ) {
-    return await this.productosService.getProductosPorSala(cardCode);
+    return await this.productosService.getProductosPorSala(cardCode, tipo);
   }
 }
 

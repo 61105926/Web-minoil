@@ -19,10 +19,45 @@ export interface ProductoConLotes {
 export class ProductosService {
   constructor(
     @Inject(DatabaseService) private databaseService: DatabaseService,
-  ) {}
+  ) { }
 
-  async getProductosPorSala(cardCode: string): Promise<ProductoConLotes[]> {
+  async getCervezas(): Promise<{ codigoProducto: string; nombreProducto: string }[]> {
     try {
+      const query = `
+        SELECT
+            T0."ItemCode",
+            T0."ItemName",
+            T0."CodeBars",
+            T1."ItmsGrpNam" AS "Categoria"
+        FROM "BD_MINOIL_PROD"."OITM" T0
+        INNER JOIN "BD_MINOIL_PROD"."OITB" T1
+            ON T0."ItmsGrpCod" = T1."ItmsGrpCod"
+        WHERE T0."frozenFor" <> 'Y'
+          AND T0."ItmsGrpCod" = 108
+        ORDER BY T0."ItemName" ASC
+      `;
+      const resultados = await this.databaseService.query(query);
+
+      return resultados.map((row: any) => {
+        const codigo = row.ITEMCODE ?? row.ItemCode ?? (row as any).itemCode;
+        const nombre = row.ITEMNAME ?? row.ItemName ?? (row as any).itemName;
+        return {
+          codigoProducto: codigo ? String(codigo).trim() : '',
+          nombreProducto: nombre ? String(nombre).trim() : '',
+        };
+      }).filter(p => p.codigoProducto && p.nombreProducto);
+    } catch (error: any) {
+      console.error('Error obteniendo cervezas:', error);
+      return [];
+    }
+  }
+
+  async getProductosPorSala(cardCode: string, tipo: string = 'impost'): Promise<ProductoConLotes[]> {
+    try {
+      const filtroProducto = tipo === 'cerveza'
+        ? 'I."ItmsGrpCod" = 108'
+        : `LOWER(I."ItemName") LIKE '%impost%'`;
+
       const query = `
         SELECT *
         FROM (
@@ -52,7 +87,7 @@ export class ProductosService {
                 ON AL."DistNumber" = L."BatchNum"
                 AND AL."ItemCode" = L."ItemCode"
             WHERE 
-                LOWER(I."ItemName") LIKE '%impost%'
+                ${filtroProducto}
                 AND A."CardCode" = ?
                 AND I."frozenFor" <> 'Y'
                 AND I."validFor" = 'Y'
@@ -67,9 +102,19 @@ export class ProductosService {
       const productosMap = new Map<string, ProductoConLotes>();
 
       resultados.forEach((row: any) => {
-        // HANA devuelve los nombres de columnas en mayúsculas
-        const codigo = row.CODIGOPRODUCTO || row.CodigoProducto;
-        const nombre = row.NOMBREPRODUCTO || row.NombreProducto;
+        // HANA/dev drivers pueden devolver columnas en distintos formatos; ItemCode es el código SAP
+        const codigo =
+          row.CODIGOPRODUCTO ??
+          row.CodigoProducto ??
+          row.ITEMCODE ??
+          row.ItemCode ??
+          (row as any).codigoproducto;
+        const nombre =
+          row.NOMBREPRODUCTO ??
+          row.NombreProducto ??
+          row.ITEMNAME ??
+          row.ItemName ??
+          (row as any).nombreproducto;
         const lote = row.LOTE || row.Lote;
         const cantidadVendida = row.CANTIDADVENDIDA || row.CantidadVendida;
         const fechaFactura = row.FECHAFACTURA || row.FechaFactura;
@@ -115,7 +160,7 @@ export class ProductosService {
             const fechaB = new Date(b.fechaFactura).getTime();
             return fechaB - fechaA; // Más reciente primero
           });
-          
+
           // Si tiene menos de 3 lotes, completar con lotes vacíos
           while (producto.lotes.length < 3) {
             producto.lotes.push({
@@ -130,7 +175,7 @@ export class ProductosService {
           producto.lotes = producto.lotes.slice(0, 3);
           return producto;
         });
-      
+
       console.log(`Productos encontrados para sala ${cardCode}:`, productos.length);
       productos.forEach(p => {
         console.log(`- ${p.nombreProducto}: ${p.lotes.filter(l => l.lote).length} lotes`);

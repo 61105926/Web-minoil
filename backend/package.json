@@ -1,23 +1,13 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "",
-  "type": "commonjs",
-  "main": "dist/main.js",
+  "description": "MINOIL backend API",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/main",
     "dev": "tsx watch src/main.ts",
-    "prestart:dev": "bash scripts/pre-build-frontend.sh",
-    "start:dev": "tsx watch src/main.ts",
-    "start:dev:old": "ts-node src/main.ts",
-    "start:prod": "node dist/main",
-    "hash-password": "node scripts/hash-password.js",
-    "clean": "pkill -9 -f 'tsx' 2>/dev/null || true; lsof -ti:3000 | xargs kill -9 2>/dev/null || true"
+    "start": "tsx src/main.ts",
+    "start:prod": "node dist/main.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "@nestjs/common": "^11.1.8",
     "@nestjs/config": "^4.0.2",

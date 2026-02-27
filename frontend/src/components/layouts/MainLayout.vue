@@ -138,14 +138,16 @@ const menuItems: Array<{ label: string; path: string; icon: IconName }> = [
     path: '/dashboard',
     icon: 'home'
   },
- 
- 
   {
     label: 'Relevamiento de Impostor',
     path: '/relevamiento-impostor',
     icon: 'document'
   },
- 
+  {
+    label: 'Reemplazo de cerveza',
+    path: '/reemplazo-cerveza',
+    icon: 'document'
+  },
   {
     label: 'Configuración',
     path: '/configuracion',
