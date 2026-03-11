@@ -7,6 +7,7 @@ import { SalasModule } from './salas/salas.module';
 import { ProductosModule } from './productos/productos.module';
 import { ImpostorModule } from './impostor/impostor.module';
 import { ReemplazoCervezaModule } from './reemplazo-cerveza/reemplazo-cerveza.module';
+import { ClientesModule } from './clientes/clientes.module';
 import { SpaModule } from './spa.module';
 
 @Module({
@@ -31,6 +32,7 @@ import { SpaModule } from './spa.module';
     ProductosModule,
     ImpostorModule,
     ReemplazoCervezaModule,
+    ClientesModule,
     SpaModule, // Importar al final para que se registre después de los demás controladores
   ],
 })
