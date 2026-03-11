@@ -21,6 +21,74 @@ export class ProductosService {
     @Inject(DatabaseService) private databaseService: DatabaseService,
   ) { }
 
+  async getProductosMobile(): Promise<{ ItemCode: string; ItemName: string; CodeBars: string }[]> {
+    const query = `
+      SELECT "ItemCode", "ItemName", "CodeBars"
+      FROM "BD_MINOIL_PROD"."OITM"
+      WHERE "frozenFor" <> 'Y'
+    `;
+    const rows = await this.databaseService.query(query);
+    return rows.map((r: any) => ({
+      ItemCode: String(r.ItemCode ?? r.ITEMCODE ?? '').trim(),
+      ItemName: String(r.ItemName ?? r.ITEMNAME ?? '').trim(),
+      CodeBars: String(r.CodeBars ?? r.CODEBARS ?? '').trim(),
+    }));
+  }
+
+  async recordStockSurvey(body: {
+    cliente: string;
+    producto: string;
+    tipo: string;
+    cantidad: number;
+    bandeo: boolean;
+    fecha_vencimiento: string;
+    usrCreate: string;
+  }): Promise<void> {
+    const { cliente, producto, tipo, cantidad, bandeo, fecha_vencimiento, usrCreate } = body;
+
+    const units = await this.getUnidadesMedida(producto);
+    let baseQty = 1;
+    for (const unit of units) {
+      const uomName = unit.UomName ?? unit.UOMNAME ?? '';
+      if (uomName === tipo) {
+        baseQty = parseFloat(unit.BaseQty ?? unit.BASEQTY ?? 1);
+        break;
+      }
+    }
+
+    const invQty = baseQty * cantidad;
+    const fv = fecha_vencimiento.substring(0, 10);
+    const createDate = new Date().toISOString().substring(0, 10);
+
+    const query = `
+      INSERT INTO "MINOILDES"."TRADE_StockLotes_Tradicional"
+        ("CardCode", "ItemCode", "Tipo", "Stock", "InvQty", "FV", "IdCenso", "UsrCreate", "CreateDate")
+      VALUES
+        (?, ?, ?, ?, ?, TO_DATE(?, 'YYYY-MM-DD'), ?, ?, TO_DATE(?, 'YYYY-MM-DD'))
+    `;
+
+    await this.databaseService.execute(query, [
+      cliente, producto, tipo, cantidad, invQty,
+      fv, bandeo ? 1 : 0, usrCreate, createDate,
+    ]);
+  }
+
+  async getUnidadesMedida(itemCode: string): Promise<any[]> {
+    const query = `
+      SELECT
+        t1."UgpEntry",
+        t3."UomCode",
+        t3."UomName",
+        t2."BaseQty"
+      FROM "BD_MINOIL_PROD"."OITM" t0
+      INNER JOIN "BD_MINOIL_PROD"."OUGP" t1 ON t0."UgpEntry" = t1."UgpEntry"
+      INNER JOIN "BD_MINOIL_PROD"."UGP1" t2 ON t1."UgpEntry" = t2."UgpEntry"
+      INNER JOIN "BD_MINOIL_PROD"."OUOM" t3 ON t2."UomEntry" = t3."UomEntry"
+      WHERE t0."ItemCode" = ?
+    `;
+    return this.databaseService.query(query, [itemCode]);
+  }
+
   async getCervezas(): Promise<{ codigoProducto: string; nombreProducto: string }[]> {
     try {
       const query = `
