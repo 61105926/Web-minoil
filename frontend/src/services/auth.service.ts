@@ -1,60 +1,114 @@
 import axios from 'axios'
 
-// En producción, si no hay VITE_API_URL, usar ruta relativa (mismo servidor)
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:8005')
 
-export interface LoginCredentials {
-  username: string
-  password: string
+const KEYCLOAK_BASE   = 'https://auth.minoil.com.bo/realms/minoil/protocol/openid-connect'
+const KEYCLOAK_CLIENT = 'minoil-client'
+
+// ---------- PKCE helpers ----------
+
+async function generateCodeVerifier(): Promise<string> {
+  const array = new Uint8Array(32)
+  crypto.getRandomValues(array)
+  return btoa(String.fromCharCode(...array))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
 }
 
-export interface AuthResponse {
-  access_token: string
-  user: {
-    id: number
-    username: string
-    email?: string
-    region?: string
-    territorio?: number
-  }
+async function generateCodeChallenge(verifier: string): Promise<string> {
+  const data = new TextEncoder().encode(verifier)
+  const digest = await crypto.subtle.digest('SHA-256', data)
+  return btoa(String.fromCharCode(...new Uint8Array(digest)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
 }
+
+function getRedirectUri(): string {
+  return `${window.location.origin}/callback`
+}
+
+// ---------- Auth service ----------
 
 class AuthService {
-  async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    console.log('🔵 AuthService.login llamado', { API_URL, url: `${API_URL}/auth/login`, credentials: { ...credentials, password: '***' } })
-    try {
-      const response = await axios.post<AuthResponse>(`${API_URL}/auth/login`, credentials)
-      console.log('✅ Respuesta del servidor:', response.data)
-      if (response.data.access_token) {
-        localStorage.setItem('token', response.data.access_token)
-        localStorage.setItem('user', JSON.stringify(response.data.user))
-        console.log('✅ Token guardado en localStorage')
-      }
-      return response.data
-    } catch (error: any) {
-      console.error('❌ Error en AuthService.login:', error)
-      console.error('❌ Error response:', error.response)
-      console.error('❌ Error message:', error.message)
-      throw error
-    }
+  /** Redirige a Keycloak (login + password reset nativo) */
+  async startLogin(): Promise<void> {
+    const verifier   = await generateCodeVerifier()
+    const challenge  = await generateCodeChallenge(verifier)
+    const state      = crypto.randomUUID()
+
+    sessionStorage.setItem('pkce_verifier', verifier)
+    sessionStorage.setItem('pkce_state', state)
+
+    const params = new URLSearchParams({
+      client_id:             KEYCLOAK_CLIENT,
+      redirect_uri:          getRedirectUri(),
+      response_type:         'code',
+      scope:                 'openid profile email',
+      code_challenge:        challenge,
+      code_challenge_method: 'S256',
+      state,
+    })
+
+    window.location.href = `${KEYCLOAK_BASE}/auth?${params}`
   }
 
-  logout() {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
+  /** Intercambia el code por token — llamado desde /callback */
+  async handleCallback(code: string, state: string): Promise<void> {
+    const savedState  = sessionStorage.getItem('pkce_state')
+    const verifier    = sessionStorage.getItem('pkce_verifier')
+
+    if (state !== savedState) throw new Error('State mismatch')
+    if (!verifier)            throw new Error('Missing PKCE verifier')
+
+    const params = new URLSearchParams({
+      grant_type:    'authorization_code',
+      client_id:     KEYCLOAK_CLIENT,
+      redirect_uri:  getRedirectUri(),
+      code,
+      code_verifier: verifier,
+    })
+
+    const res = await axios.post(`${KEYCLOAK_BASE}/token`, params, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    })
+
+    const { access_token, refresh_token } = res.data
+    const payload = JSON.parse(atob(access_token.split('.')[1]))
+
+    localStorage.setItem('token', access_token)
+    if (refresh_token) localStorage.setItem('refresh_token', refresh_token)
+    localStorage.setItem('user', JSON.stringify({
+      id:       payload.sub,
+      username: payload.preferred_username,
+      email:    payload.email,
+      roles:    payload.realm_access?.roles ?? [],
+    }))
+
+    sessionStorage.removeItem('pkce_verifier')
+    sessionStorage.removeItem('pkce_state')
   }
 
-  getToken(): string | null {
-    return localStorage.getItem('token')
+  /** Cierra sesión en Keycloak y limpia localStorage */
+  logout(): void {
+    const params = new URLSearchParams({
+      client_id:               KEYCLOAK_CLIENT,
+      post_logout_redirect_uri: `${window.location.origin}/login`,
+    })
+    localStorage.clear()
+    window.location.href = `${KEYCLOAK_BASE}/logout?${params}`
   }
 
-  getUser() {
-    const user = localStorage.getItem('user')
-    return user ? JSON.parse(user) : null
-  }
+  getToken(): string | null    { return localStorage.getItem('token') }
+  getUser()                    { const u = localStorage.getItem('user'); return u ? JSON.parse(u) : null }
+  isAuthenticated(): boolean   { return !!this.getToken() }
 
-  isAuthenticated(): boolean {
-    return !!this.getToken()
+  /** Axios instance con Bearer automático para llamadas al backend */
+  get http() {
+    const instance = axios.create({ baseURL: API_URL })
+    instance.interceptors.request.use(config => {
+      const token = this.getToken()
+      if (token) config.headers.Authorization = `Bearer ${token}`
+      return config
+    })
+    return instance
   }
 }
 
