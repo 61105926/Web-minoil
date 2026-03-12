@@ -5,18 +5,11 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     {
-      path: '/login',
-      name: 'Login',
-      component: () => import('@/views/Login.vue'),
-      meta: { requiresAuth: false }
-    },
-    {
       path: '/dashboard',
       name: 'Dashboard',
       component: () => import('@/views/Dashboard.vue'),
       meta: { requiresAuth: true }
     },
-   
     {
       path: '/vacaciones',
       name: 'Vacaciones',
@@ -61,12 +54,10 @@ const router = createRouter({
 })
 
 router.beforeEach((to, _from, next) => {
-  const isAuthenticated = authService.isAuthenticated()
-
-  if (to.meta.requiresAuth && !isAuthenticated) {
-    next('/login')
-  } else if (to.path === '/login' && isAuthenticated) {
-    next('/dashboard')
+  if (to.meta.requiresAuth && !authService.isAuthenticated()) {
+    // No hay ruta de login — redirige directo a Keycloak
+    authService.startLogin()
+    next(false)
   } else {
     next()
   }
