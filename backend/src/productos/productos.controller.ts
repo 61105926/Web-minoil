@@ -49,10 +49,12 @@ export class ProductosMobileController {
 
   @Post('stock-survey')
   async recordStockSurvey(@Body() dto: StockSurveyDto, @Request() req: any) {
-    await this.productosService.recordStockSurvey({
-      ...dto,
-      usrCreate: req.user?.userId ?? req.user?.sub ?? 'unknown',
-    });
+    // Prioridad: empId del body → username de Keycloak → sub de Keycloak
+    const usrCreate = dto.empId != null
+      ? String(dto.empId)
+      : (req.user?.username ?? req.user?.userId ?? 'unknown');
+
+    await this.productosService.recordStockSurvey({ ...dto, usrCreate });
     return { message: 'Stock survey recorded successfully.' };
   }
 }

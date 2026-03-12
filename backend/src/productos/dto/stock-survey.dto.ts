@@ -1,4 +1,4 @@
-import { IsString, IsInt, IsBoolean, IsDateString, MaxLength, Min } from 'class-validator';
+import { IsString, IsInt, IsBoolean, IsDateString, MaxLength, Min, IsOptional } from 'class-validator';
 
 export class StockSurveyDto {
   @IsString()
@@ -22,4 +22,8 @@ export class StockSurveyDto {
 
   @IsDateString()
   fecha_vencimiento: string;
+
+  @IsOptional()
+  @IsInt()
+  empId?: number;
 }
