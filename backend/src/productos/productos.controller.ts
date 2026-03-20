@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Request, Param, Query, Inject } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Request, Param, Query, Inject, HttpException } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ProductosService } from './productos.service';
 import { StockSurveyDto } from './dto/stock-survey.dto';
@@ -49,13 +49,26 @@ export class ProductosMobileController {
 
   @Post('stock-survey')
   async recordStockSurvey(@Body() dto: StockSurveyDto, @Request() req: any) {
-    // Prioridad: empId del body → username de Keycloak → sub de Keycloak
     const usrCreate = dto.empId != null
       ? String(dto.empId)
       : (req.user?.username ?? req.user?.userId ?? 'unknown');
 
-    await this.productosService.recordStockSurvey({ ...dto, usrCreate });
-    return { message: 'Stock survey recorded successfully.' };
+    const payload = { ...dto, usrCreate };
+
+    try {
+      await this.productosService.recordStockSurvey(payload);
+      return { message: 'Stock survey recorded successfully.' };
+    } catch (error: any) {
+      throw new HttpException(
+        {
+          statusCode: 400,
+          message: 'Error al insertar en HANA',
+          hanaError: error.message ?? String(error),
+          payload,
+        },
+        400,
+      );
+    }
   }
 }
 

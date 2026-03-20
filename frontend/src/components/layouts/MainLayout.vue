@@ -149,6 +149,11 @@ const menuItems: Array<{ label: string; path: string; icon: IconName }> = [
     icon: 'document'
   },
   {
+    label: 'Distribuidores',
+    path: '/distribuidores',
+    icon: 'chart'
+  },
+  {
     label: 'Configuración',
     path: '/configuracion',
     icon: 'cog'
