@@ -40,6 +40,23 @@ export class DatabaseController {
     }
   }
 
+  @Get('item-groups')
+  async getItemGroups() {
+    try {
+      const result = await this.databaseService.query(
+        `SELECT "ItmsGrpCod", "ItmsGrpNam", COUNT(*) AS "Total"
+         FROM "BD_MINOIL_PROD"."OITB" T1
+         INNER JOIN "BD_MINOIL_PROD"."OITM" T0 ON T0."ItmsGrpCod" = T1."ItmsGrpCod"
+         WHERE T0."frozenFor" <> 'Y'
+         GROUP BY T1."ItmsGrpCod", T1."ItmsGrpNam"
+         ORDER BY T1."ItmsGrpNam"`
+      );
+      return { grupos: result };
+    } catch (error: any) {
+      return { error: error.message };
+    }
+  }
+
   @Get('info')
   getConnectionInfo() {
     return {
