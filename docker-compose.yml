@@ -13,6 +13,9 @@ services:
       - HANA_USER=${HANA_USER:-}
       - HANA_PASS=${HANA_PASS:-}
       - JWT_SECRET=${JWT_SECRET:-mi-secreto-jwt-super-seguro-cambiar-en-produccion}
+      - KEYCLOAK_SERVER_URL=${KEYCLOAK_SERVER_URL:-}
+      - KEYCLOAK_REALM=${KEYCLOAK_REALM:-minoil}
+      - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID:-minoil-client}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:8005/', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
