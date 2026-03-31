@@ -59,8 +59,8 @@
                 :options="productos"
                 :searchable="true"
                 :loading="loadingProductos"
-                :disabled="!salaSeleccionada || loadingProductos || productos.length === 0"
-                :placeholder="!salaSeleccionada ? 'Selecciona una sala primero' : 'Busca una cerveza...'"
+                :disabled="!salaSeleccionada || loadingProductos"
+                :placeholder="!salaSeleccionada ? 'Selecciona una sala primero' : loadingProductos ? 'Cargando cervezas...' : productos.length === 0 ? 'Sin cervezas disponibles' : 'Busca una cerveza...'"
                 track-by="codigoProducto"
                 label="nombreProducto"
                 class="custom-multiselect"
@@ -570,9 +570,12 @@ const cargarProductos = async () => {
   loadingProductos.value = true
   try {
     productos.value = await productosService.getCervezas()
+    if (productos.value.length === 0) {
+      toast.error('Sin cervezas', 'No se encontraron productos tipo cerveza en HANA')
+    }
   } catch (error: any) {
     console.error('Error cargando cervezas:', error)
-    toast.error('Error al cargar cervezas', error.message || 'No se pudieron cargar las cervezas')
+    toast.error('Error al cargar cervezas', error.response?.data?.message || error.message || 'No se pudieron cargar las cervezas')
   } finally {
     loadingProductos.value = false
   }
