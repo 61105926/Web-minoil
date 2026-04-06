@@ -100,14 +100,55 @@ class AuthService {
   getUser()                    { const u = localStorage.getItem('user'); return u ? JSON.parse(u) : null }
   isAuthenticated(): boolean   { return !!this.getToken() }
 
-  /** Axios instance con Bearer automático para llamadas al backend */
+  async refreshToken(): Promise<boolean> {
+    const refreshTk = localStorage.getItem('refresh_token')
+    if (!refreshTk) return false
+    try {
+      const params = new URLSearchParams({
+        grant_type:    'refresh_token',
+        client_id:     KEYCLOAK_CLIENT,
+        refresh_token: refreshTk,
+      })
+      const res = await axios.post(`${KEYCLOAK_BASE}/token`, params, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      })
+      const { access_token, refresh_token } = res.data
+      localStorage.setItem('token', access_token)
+      if (refresh_token) localStorage.setItem('refresh_token', refresh_token)
+      return true
+    } catch {
+      localStorage.clear()
+      window.location.href = '/login'
+      return false
+    }
+  }
+
+  /** Axios instance con Bearer automático y refresh en 401 */
   get http() {
     const instance = axios.create({ baseURL: API_URL })
+
     instance.interceptors.request.use(config => {
       const token = this.getToken()
       if (token) config.headers.Authorization = `Bearer ${token}`
       return config
     })
+
+    instance.interceptors.response.use(
+      res => res,
+      async error => {
+        const original = error.config
+        if (error.response?.status === 401 && !original._retry) {
+          original._retry = true
+          const ok = await this.refreshToken()
+          if (ok) {
+            original.headers.Authorization = `Bearer ${this.getToken()}`
+            return instance(original)
+          }
+        }
+        return Promise.reject(error)
+      }
+    )
+
     return instance
   }
 }
