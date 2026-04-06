@@ -1,8 +1,4 @@
-import axios from 'axios'
 import authService from './auth.service'
-
-// En producción, si no hay VITE_API_URL, usar ruta relativa (mismo servidor)
-const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:8005')
 
 export interface LoteProducto {
   lote: string
@@ -25,43 +21,17 @@ export interface ProductoConLotes {
 
 class ProductosService {
   async getCervezas(): Promise<ProductoSimple[]> {
-    const token = authService.getToken()
-    if (!token) {
-      throw new Error('No autenticado')
-    }
-
-    const response = await axios.get<ProductoSimple[]>(
-      `${API_URL}/productos/cervezas`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    )
-
+    const response = await authService.http.get<ProductoSimple[]>('/productos/cervezas')
     if (!Array.isArray(response.data)) {
-      console.error('Respuesta no válida del servidor:', response.data)
-      throw new Error('No se pudo obtener la lista de cervezas (¿falló la conexión al backend?).')
+      throw new Error('No se pudo obtener la lista de cervezas.')
     }
-
     return response.data
   }
 
   async getProductosPorSala(cardCode: string, tipo: string = 'impost'): Promise<ProductoConLotes[]> {
-    const token = authService.getToken()
-    if (!token) {
-      throw new Error('No autenticado')
-    }
-
-    const response = await axios.get<ProductoConLotes[]>(
-      `${API_URL}/productos/sala/${encodeURIComponent(cardCode)}?tipo=${tipo}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+    const response = await authService.http.get<ProductoConLotes[]>(
+      `/productos/sala/${encodeURIComponent(cardCode)}?tipo=${tipo}`
     )
-
     return response.data
   }
 }

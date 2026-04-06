@@ -1,8 +1,4 @@
-import axios from 'axios'
 import authService from './auth.service'
-
-// En producción, si no hay VITE_API_URL, usar ruta relativa (mismo servidor)
-const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:8005')
 
 export interface ReemplazoCervezaData {
   cardCode: string
@@ -25,50 +21,23 @@ export interface ReemplazoCervezaRecord {
 
 class ReemplazoCervezaService {
   async crearReemplazo(data: ReemplazoCervezaData): Promise<{ success: boolean; message: string }> {
-    const token = authService.getToken()
-    if (!token) {
-      throw new Error('No autenticado')
-    }
-
-    const response = await axios.post<{ success: boolean; message: string }>(
-      `${API_URL}/reemplazo-cerveza`,
-      data,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    )
-
+    const response = await authService.http.post<{ success: boolean; message: string }>('/reemplazo-cerveza', data)
     return response.data
   }
 
   async getRegistrosPorSala(cardCode: string): Promise<ReemplazoCervezaRecord[]> {
-    const token = authService.getToken()
-    if (!token) throw new Error('No autenticado')
-
-    const response = await axios.get<ReemplazoCervezaRecord[]>(
-      `${API_URL}/reemplazo-cerveza/sala/${encodeURIComponent(cardCode)}`,
-      {
-        headers: { Authorization: `Bearer ${token}` }
-      }
+    const response = await authService.http.get<ReemplazoCervezaRecord[]>(
+      `/reemplazo-cerveza/sala/${encodeURIComponent(cardCode)}`
     )
     return response.data
   }
 
   async eliminarRegistro(id: number): Promise<{ success: boolean; message: string }> {
-    const token = authService.getToken()
-    if (!token) throw new Error('No autenticado')
-
-    const response = await axios.delete<{ success: boolean; message: string }>(
-      `${API_URL}/reemplazo-cerveza/${id}`,
-      {
-        headers: { Authorization: `Bearer ${token}` }
-      }
+    const response = await authService.http.delete<{ success: boolean; message: string }>(
+      `/reemplazo-cerveza/${id}`
     )
     return response.data
   }
 }
 
 export default new ReemplazoCervezaService()
-

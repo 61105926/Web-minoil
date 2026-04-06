@@ -1,8 +1,4 @@
-import axios from 'axios'
 import authService from './auth.service'
-
-// En producción, si no hay VITE_API_URL, usar ruta relativa (mismo servidor)
-const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:8005')
 
 export interface Empleado {
   ID: number
@@ -14,12 +10,7 @@ export interface Empleado {
 
 class EmpleadosService {
   async getEmpleados(): Promise<Empleado[]> {
-    const token = authService.getToken()
-    const response = await axios.get<Empleado[]>(`${API_URL}/empleados`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
+    const response = await authService.http.get<Empleado[]>('/empleados')
     return response.data
   }
 }
