@@ -35,18 +35,39 @@ export class DistribuidoresService {
     }
   }
 
-  async updateUbicacionPorNombre(nombre: string, latitud: number, longitud: number) {
-    const query = `
-      UPDATE "MINOILDES"."DISTRIBUIDORES"
-      SET "LATITUD" = ?, "LONGITUD" = ?, "UPDATED_AT" = CURRENT_TIMESTAMP
-      WHERE UPPER("NOMBRE") = UPPER(?)
-    `;
+  async upsertUbicacion(nombre: string, latitud: number, longitud: number) {
     try {
-      await this.databaseService.execute(query, [latitud, longitud, nombre]);
-      return { message: 'Ubicación actualizada.' };
+      const existing = await this.databaseService.query(
+        `SELECT "ID" FROM "MINOILDES"."DISTRIBUIDORES" WHERE UPPER("NOMBRE") = UPPER(?)`,
+        [nombre],
+      );
+
+      if (existing.length > 0) {
+        await this.databaseService.execute(
+          `UPDATE "MINOILDES"."DISTRIBUIDORES"
+           SET "LATITUD" = ?, "LONGITUD" = ?, "UPDATED_AT" = CURRENT_TIMESTAMP
+           WHERE UPPER("NOMBRE") = UPPER(?)`,
+          [latitud, longitud, nombre],
+        );
+      } else {
+        await this.databaseService.execute(
+          `INSERT INTO "MINOILDES"."DISTRIBUIDORES" ("NOMBRE", "LATITUD", "LONGITUD")
+           VALUES (?, ?, ?)`,
+          [nombre, latitud, longitud],
+        );
+      }
+
+      // Guardar historial
+      await this.databaseService.execute(
+        `INSERT INTO "MINOILDES"."DISTRIBUIDOR_UBICACION_LOG" ("NOMBRE", "LATITUD", "LONGITUD")
+         VALUES (?, ?, ?)`,
+        [nombre, latitud, longitud],
+      );
+
+      return { message: 'Ubicación registrada.' };
     } catch (error: any) {
       throw new HttpException(
-        { statusCode: 400, message: 'Error al actualizar ubicación', hanaError: error.message },
+        { statusCode: 400, message: 'Error al registrar ubicación', hanaError: error.message },
         400,
       );
     }

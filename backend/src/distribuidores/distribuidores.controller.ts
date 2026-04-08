@@ -27,6 +27,6 @@ export class DistribuidoresController {
   updateUbicacion(
     @Body() body: { nombre: string; latitud: number; longitud: number },
   ) {
-    return this.distribuidoresService.updateUbicacionPorNombre(body.nombre, body.latitud, body.longitud);
+    return this.distribuidoresService.upsertUbicacion(body.nombre, body.latitud, body.longitud);
   }
 }
