@@ -17,12 +17,12 @@ export interface CreateDistribuidorDto {
 
 class DistribuidoresService {
   async getAll(): Promise<Distribuidor[]> {
-    const res = await authService.http.get('/api/v1/distribuidores')
+    const res = await authService.http.get('/api/v1/mobile/distribuidores')
     return res.data
   }
 
   async create(dto: CreateDistribuidorDto): Promise<void> {
-    await authService.http.post('/api/v1/distribuidores', dto)
+    await authService.http.post('/api/v1/mobile/distribuidores', dto)
   }
 }
 

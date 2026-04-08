@@ -2,6 +2,7 @@ import { Controller, Get, Post, Put, Body, UseGuards, Inject } from '@nestjs/com
 import { DistribuidoresService } from './distribuidores.service';
 import { CreateDistribuidorDto } from './dto/create-distribuidor.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { MobileJwtGuard } from '../mobile-auth/mobile-jwt.guard';
 
 @Controller('api/v1/mobile/distribuidores')
 @UseGuards(JwtAuthGuard)
@@ -21,6 +22,7 @@ export class DistribuidoresController {
   }
 
   @Put('ubicacion')
+  @UseGuards(MobileJwtGuard)
   updateUbicacion(
     @Body() body: { nombre: string; latitud: number; longitud: number },
   ) {

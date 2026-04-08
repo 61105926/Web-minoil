@@ -1,16 +1,18 @@
 import { Injectable, HttpException, HttpStatus, Inject, UnauthorizedException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { createHash } from 'crypto';
 import { SqlServerService } from '../sqlserver/sqlserver.service';
 import { MobileLoginDto } from './dto/mobile-login.dto';
 
 @Injectable()
 export class MobileAuthService {
-  constructor(@Inject(SqlServerService) private readonly sqlServer: SqlServerService) {}
+  constructor(
+    @Inject(SqlServerService) private readonly sqlServer: SqlServerService,
+    @Inject(JwtService)       private readonly jwtService: JwtService,
+  ) {}
 
   async login(dto: MobileLoginDto) {
-    const hashedPassword = createHash('sha256')
-      .update(dto.password)
-      .digest('base64')
+    const hashedPassword = createHash('sha256').update(dto.password).digest('base64');
 
     try {
       const rows = await this.sqlServer.query(
@@ -31,23 +33,26 @@ export class MobileAuthService {
         throw new UnauthorizedException('Credenciales inválidas');
       }
 
-      const usuario = rows[0];
-
-      return {
-        success: true,
-        usuario: {
-          id:          usuario.Id         ?? usuario.ID,
-          login:       usuario.Login      ?? usuario.LOGIN,
-          idEmpleado:  usuario.IdEmpleado ?? usuario.IDEMPLEADO,
-          nombre:      usuario.Nombre     ?? usuario.NOMBRE,
-          estado:      usuario.Estado     ?? usuario.ESTADO,
-          imei:        usuario.Imei       ?? usuario.IMEI,
-          perfil:      usuario.IdPerfil   ?? usuario.IDPERFIL,
-        },
+      const u = rows[0];
+      const usuario = {
+        id:         u.Id         ?? u.ID,
+        login:      u.Login      ?? u.LOGIN,
+        idEmpleado: u.IdEmpleado ?? u.IDEMPLEADO,
+        nombre:     u.Nombre     ?? u.NOMBRE,
+        estado:     u.Estado     ?? u.ESTADO,
+        imei:       u.Imei       ?? u.IMEI,
+        perfil:     u.IdPerfil   ?? u.IDPERFIL,
       };
+
+      const token = this.jwtService.sign({
+        sub:        usuario.id,
+        login:      usuario.login,
+        idEmpleado: usuario.idEmpleado,
+      });
+
+      return { success: true, access_token: token, usuario };
     } catch (err: any) {
-      console.error('[MobileAuth] error SP:', err.message)
-      // RAISERROR del SP — el mensaje viene como error de mssql
+      console.error('[MobileAuth] error SP:', err.message);
       if (err.message?.includes('Invalido') || err.message?.includes('Inactivo') ||
           err.message?.includes('Deshabilitado') || err.message?.includes('No existe')) {
         throw new HttpException(
