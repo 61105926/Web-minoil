@@ -35,6 +35,23 @@ export class DistribuidoresService {
     }
   }
 
+  async updateUbicacionPorNombre(nombre: string, latitud: number, longitud: number) {
+    const query = `
+      UPDATE "MINOILDES"."DISTRIBUIDORES"
+      SET "LATITUD" = ?, "LONGITUD" = ?, "UPDATED_AT" = CURRENT_TIMESTAMP
+      WHERE UPPER("NOMBRE") = UPPER(?)
+    `;
+    try {
+      await this.databaseService.execute(query, [latitud, longitud, nombre]);
+      return { message: 'Ubicación actualizada.' };
+    } catch (error: any) {
+      throw new HttpException(
+        { statusCode: 400, message: 'Error al actualizar ubicación', hanaError: error.message },
+        400,
+      );
+    }
+  }
+
   async findAll() {
     const query = `
       SELECT "ID", "NOMBRE", "LATITUD", "LONGITUD", "CREATED_AT", "UPDATED_AT"

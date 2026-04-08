@@ -25,7 +25,7 @@ export class ProductosController {
   }
 }
 
-@Controller('api/v1/productos')
+@Controller('api/v1/mobile/productos')
 @UseGuards(JwtAuthGuard)
 export class ProductosMobileController {
   constructor(

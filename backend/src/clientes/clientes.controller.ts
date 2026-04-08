@@ -2,7 +2,7 @@ import { Controller, Get, Query, UseGuards, Inject, ParseIntPipe, DefaultValuePi
 import { ClientesService } from './clientes.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
-@Controller('api/v1/clientes')
+@Controller('api/v1/mobile/clientes')
 @UseGuards(JwtAuthGuard)
 export class ClientesController {
   constructor(

@@ -1,4 +1,5 @@
-import { Injectable, UnauthorizedException, HttpException, HttpStatus, Inject } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, Inject } from '@nestjs/common';
+import { createHash } from 'crypto';
 import { SqlServerService } from '../sqlserver/sqlserver.service';
 import { MobileLoginDto } from './dto/mobile-login.dto';
 
@@ -7,6 +8,10 @@ export class MobileAuthService {
   constructor(@Inject(SqlServerService) private readonly sqlServer: SqlServerService) {}
 
   async login(dto: MobileLoginDto) {
+    const hashedPassword = createHash('sha256')
+      .update(dto.password)
+      .digest('base64')
+
     try {
       const rows = await this.sqlServer.query(
         `EXEC [SIS].[sp_usuario_obtener]
@@ -16,7 +21,7 @@ export class MobileAuthService {
            @Version  = @Version`,
         {
           Login:    dto.login,
-          Password: dto.password,
+          Password: hashedPassword,
           Imei:     dto.imei,
           Version:  dto.version ?? null,
         },
