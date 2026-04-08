@@ -5,18 +5,19 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { MobileJwtGuard } from '../mobile-auth/mobile-jwt.guard';
 
 @Controller('api/v1/mobile/distribuidores')
-@UseGuards(JwtAuthGuard)
 export class DistribuidoresController {
   constructor(
     @Inject(DistribuidoresService) private distribuidoresService: DistribuidoresService,
   ) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard)
   create(@Body() dto: CreateDistribuidorDto) {
     return this.distribuidoresService.create(dto);
   }
 
   @Get()
+  @UseGuards(JwtAuthGuard)
   findAll() {
     return this.distribuidoresService.findAll();
   }
