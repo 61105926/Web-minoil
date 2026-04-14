@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Body, UseGuards, Inject } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Query, UseGuards, Inject } from '@nestjs/common';
 import { DistribuidoresService } from './distribuidores.service';
 import { CreateDistribuidorDto } from './dto/create-distribuidor.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -20,6 +20,15 @@ export class DistribuidoresController {
   @UseGuards(JwtAuthGuard)
   findAll() {
     return this.distribuidoresService.findAll();
+  }
+
+  @Get('trayectoria')
+  @UseGuards(JwtAuthGuard)
+  getTrayectoria(
+    @Query('nombre') nombre: string,
+    @Query('fecha') fecha: string,
+  ) {
+    return this.distribuidoresService.getTrayectoria(nombre, fecha);
   }
 
   @Put('ubicacion')

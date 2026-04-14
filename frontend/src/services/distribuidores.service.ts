@@ -15,6 +15,13 @@ export interface CreateDistribuidorDto {
   longitud?: number
 }
 
+export interface PuntoTrayectoria {
+  NOMBRE: string
+  LATITUD: number
+  LONGITUD: number
+  CREATED_AT: string
+}
+
 class DistribuidoresService {
   async getAll(): Promise<Distribuidor[]> {
     const res = await authService.http.get('/api/v1/mobile/distribuidores')
@@ -23,6 +30,13 @@ class DistribuidoresService {
 
   async create(dto: CreateDistribuidorDto): Promise<void> {
     await authService.http.post('/api/v1/mobile/distribuidores', dto)
+  }
+
+  async getTrayectoria(nombre: string, fecha: string): Promise<PuntoTrayectoria[]> {
+    const res = await authService.http.get('/api/v1/mobile/distribuidores/trayectoria', {
+      params: { nombre, fecha },
+    })
+    return res.data
   }
 }
 

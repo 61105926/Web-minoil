@@ -73,6 +73,17 @@ export class DistribuidoresService {
     }
   }
 
+  async getTrayectoria(nombre: string, fecha: string) {
+    return this.databaseService.query(
+      `SELECT "NOMBRE", "LATITUD", "LONGITUD", "CREATED_AT"
+       FROM "MINOILDES"."DISTRIBUIDOR_UBICACION_LOG"
+       WHERE UPPER("NOMBRE") = UPPER(?)
+         AND TO_DATE("CREATED_AT") = TO_DATE(?, 'YYYY-MM-DD')
+       ORDER BY "CREATED_AT" ASC`,
+      [nombre, fecha],
+    );
+  }
+
   async findAll() {
     const query = `
       SELECT "ID", "NOMBRE", "LATITUD", "LONGITUD", "CREATED_AT", "UPDATED_AT"
