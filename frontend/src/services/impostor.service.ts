@@ -9,10 +9,13 @@ export interface ImpostorStockData {
 }
 
 class ImpostorService {
-  async insertarStock(datos: ImpostorStockData[]): Promise<{ success: boolean; message: string; registrosInsertados: number }> {
-    const response = await authService.http.post<{ success: boolean; message: string; registrosInsertados: number }>(
+  async insertarStock(
+    datos: ImpostorStockData[],
+    regional?: string,
+  ): Promise<{ success: boolean; message: string; registrosInsertados: number; empleado: string; regional: string | null }> {
+    const response = await authService.http.post(
       '/impostor/stock',
-      { datos }
+      { datos, regional },
     )
     return response.data
   }

@@ -20,12 +20,12 @@ onMounted(async () => {
 
   if (error) {
     message.value = 'Error de autenticación. Redirigiendo...'
-    setTimeout(() => router.push('/login'), 2000)
+    setTimeout(() => router.push('/'), 2000)
     return
   }
 
   if (!code || !state) {
-    router.push('/login')
+    router.push('/')
     return
   }
 
@@ -35,7 +35,7 @@ onMounted(async () => {
   } catch (err) {
     console.error('Error en callback:', err)
     message.value = 'Error al procesar la autenticación. Redirigiendo...'
-    setTimeout(() => router.push('/login'), 2000)
+    setTimeout(() => router.push('/'), 2000)
   }
 })
 </script>

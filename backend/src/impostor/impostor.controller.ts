@@ -10,28 +10,32 @@ export class ImpostorController {
   ) {}
 
   @Post('stock')
-  async insertarStock(@Body() body: { datos: ImpostorStockData[] }, @Request() req: any) {
-    try {
-      console.log(`🔵 ImpostorController: Usuario ${req.user?.username} insertando ${body.datos?.length || 0} registros`);
-      
-      if (!body.datos || body.datos.length === 0) {
-        throw new Error('No se proporcionaron datos para insertar');
-      }
-
-      console.log(`🔵 Datos recibidos:`, JSON.stringify(body.datos.slice(0, 2), null, 2));
-
-      await this.impostorService.insertarStockProductoLoteBatch(body.datos);
-      
-      return {
-        success: true,
-        message: `${body.datos.length} registros insertados correctamente`,
-        registrosInsertados: body.datos.length,
-      };
-    } catch (error: any) {
-      console.error('❌ Error en ImpostorController:', error);
-      console.error('❌ Stack:', error.stack);
-      throw error;
+  async insertarStock(
+    @Body() body: { datos: ImpostorStockData[]; regional?: string },
+    @Request() req: any,
+  ) {
+    if (!body.datos?.length) {
+      throw new Error('No se proporcionaron datos para insertar');
     }
+
+    const empleado = req.user?.fullName || req.user?.username || 'desconocido';
+    const regional = req.user?.regional || body.regional || null;
+    console.log(`🔵 ImpostorController: empleado=${empleado}, regional=${regional}, registros=${body.datos.length}`);
+
+    const datosCompletos = body.datos.map(d => ({
+      ...d,
+      regional,
+      empleado,
+    }));
+
+    await this.impostorService.insertarStock(datosCompletos);
+
+    return {
+      success: true,
+      message: `${body.datos.length} registros insertados correctamente`,
+      registrosInsertados: body.datos.length,
+      empleado,
+      regional,
+    };
   }
 }
-

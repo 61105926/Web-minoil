@@ -440,8 +440,9 @@
                 </div>
               </div>
 
+
               <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-               
+
                 <Button
                   @click="descargarResumen"
                   variant="outline"
@@ -524,6 +525,7 @@ interface RegistroReposicion {
 type Fase = 'seleccionar-sala' | 'cargando-productos' | 'seleccionar-productos' | 'sala' | 'pregunta-bodega' | 'bodega' | 'informe'
 
 const fase = ref<Fase>('seleccionar-sala')
+const regional = ref<string>('')
 const salaSeleccionada = ref<string | null>(null)
 const salaSeleccionadaObj = ref<Sala | null>(null)
 const indexActual = ref(0)
@@ -681,7 +683,9 @@ const iniciarReposicion = () => {
 
 const handleSeleccionarSala = async (sala: Sala) => {
   console.log('🔵 Seleccionando sala:', sala)
-  salaSeleccionada.value = sala.nombre || sala.alias || sala.codigo
+  salaSeleccionada.value = sala.alias
+    ? `${sala.nombre || sala.codigo} (${sala.alias})`
+    : sala.nombre || sala.codigo
   salaSeleccionadaObj.value = sala
   indexActual.value = 0
   
@@ -837,7 +841,7 @@ const guardarEnBaseDatos = async () => {
     }))
 
     console.log('🔵 Enviando datos:', datosParaInsertar.length, 'registros')
-    const resultado = await impostorService.insertarStock(datosParaInsertar)
+    const resultado = await impostorService.insertarStock(datosParaInsertar, regional.value || undefined)
     
     toast.success(
       '¡Datos guardados!',

@@ -42,65 +42,12 @@ export class SalasService {
           };
         });
       } else {
-        // Si no hay resultados, usar datos demo
-        console.log('⚠️ No se encontraron salas en BD, usando datos demo');
-        return this.getSalasDemo(territorio);
+        return [];
       }
     } catch (error: any) {
       console.error('❌ Error obteniendo salas:', error);
-      // Si hay error con la BD, devolver datos de ejemplo según territorio
-      console.log(`📦 Devolviendo datos demo para territorio: ${territorio}`);
-      return this.getSalasDemo(territorio);
+      throw error;
     }
-  }
-
-  private getSalasDemo(territorio: number): any[] {
-    // Datos de ejemplo por territorio
-    const salasPorTerritorio: Record<number, string[]> = {
-      1: [
-        'Hipermaxi Los Pinos',
-        'Hipermaxi Calacoto',
-        'Hipermaxi Zona Sur',
-        'Hipermaxi Sopocachi',
-        'Hipermaxi Obrajes',
-        'Hipermaxi San Miguel',
-      ],
-      2: [
-        'Hipermaxi Centro',
-        'Hipermaxi Miraflores',
-        'Hipermaxi La Paz',
-        'Hipermaxi Achumani',
-        'Hipermaxi Valle Hermoso',
-        'Hipermaxi Alto',
-      ],
-      3: [
-        'Hipermaxi Periférica',
-        'Hipermaxi 6 de Agosto',
-        'Hipermaxi Arce',
-        'Hipermaxi Jaime Freyre',
-        'Hipermaxi Junín',
-        'Hipermaxi Mariscal Santa Cruz',
-      ],
-    };
-
-    const salas = salasPorTerritorio[territorio] || [];
-    console.log(`📦 Generando ${salas.length} salas demo para territorio ${territorio}`);
-    return salas.map((nombre, index) => ({
-      codigo: `DEMO-${territorio}-${index + 1}`,
-      nombre,
-      alias: nombre,
-      glblLocNum: String(index + 1).padStart(3, '0'),
-    }));
-  }
-
-  getTerritorioPorRegion(region: string): number {
-    const regionMap: Record<string, number> = {
-      'Santa Cruz': 1,
-      'La Paz': 2,
-      'Cochabamba': 3,
-      'Administrador': 2, // Por defecto La Paz para admin
-    };
-    return regionMap[region] || 2;
   }
 }
 

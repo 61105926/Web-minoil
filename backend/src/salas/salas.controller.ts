@@ -11,9 +11,8 @@ export class SalasController {
 
   @Get()
   async getSalas(@Request() req: any) {
-    // Obtener territorio del usuario desde el token JWT
-    const territorio = req.user?.territorio || 2; // Por defecto La Paz
-    console.log(`🔵 SalasController: Usuario ${req.user?.username}, territorio: ${territorio}`);
+    const territorio = parseInt(req.user?.codeRegional ?? req.user?.territorio ?? '2', 10) || 2;
+    console.log(`🔵 SalasController: Usuario ${req.user?.username}, regional=${req.user?.regional}, territorio=${territorio}`);
     
     const salas = await this.salasService.getSalasPorTerritorio(territorio);
     console.log(`✅ SalasController: Devolviendo ${salas.length} salas`);

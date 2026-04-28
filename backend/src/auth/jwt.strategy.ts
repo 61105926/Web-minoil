@@ -25,11 +25,19 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
+    const fullName = [payload.given_name, payload.family_name].filter(Boolean).join(' ')
+      || payload.preferred_username
+
     return {
-      userId: payload.sub,
-      username: payload.preferred_username ?? payload.username,
-      email: payload.email,
-      roles: payload.realm_access?.roles ?? [],
+      userId:       payload.sub,
+      username:     payload.preferred_username ?? payload.username,
+      fullName,
+      email:        payload.email,
+      roles:        payload.realm_access?.roles ?? [],
+      regional:     payload.regional      ?? null,
+      codeRegional: payload.code_regional ?? null,
+      empId:        payload.empID         ?? null,
+      cargo:        payload.cargo         ?? null,
     };
   }
 }

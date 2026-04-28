@@ -90,7 +90,7 @@ class AuthService {
   logout(): void {
     const params = new URLSearchParams({
       client_id:               KEYCLOAK_CLIENT,
-      post_logout_redirect_uri: `${window.location.origin}/login`,
+      post_logout_redirect_uri: `${window.location.origin}`,
     })
     localStorage.clear()
     window.location.href = `${KEYCLOAK_BASE}/logout?${params}`
@@ -118,7 +118,7 @@ class AuthService {
       return true
     } catch {
       localStorage.clear()
-      window.location.href = '/login'
+      window.location.href = '/'
       return false
     }
   }

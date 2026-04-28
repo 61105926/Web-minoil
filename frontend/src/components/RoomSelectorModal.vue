@@ -37,16 +37,12 @@
               @click="handleSelect(room)"
               class="w-full flex items-center justify-start p-4 hover:bg-blue-50 dark:hover:bg-gray-700 text-left rounded-lg border border-transparent hover:border-blue-300 dark:hover:border-blue-600 transition-all group"
             >
-              <svg
-                class="h-5 w-5 text-blue-600 dark:text-blue-400 mr-3 flex-shrink-0 group-hover:scale-110 transition-transform"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              <span class="font-semibold text-gray-900 dark:text-gray-100">{{ room.nombre || room.alias || room.codigo }}</span>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2">
+                  <span v-if="room.alias" class="flex-shrink-0 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 text-xs font-bold px-2 py-0.5 rounded-full">{{ room.alias }}</span>
+                </div>
+                <div v-if="room.glblLocNum" class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ room.glblLocNum }}</div>
+              </div>
             </button>
             <div v-if="filteredRooms.length === 0" class="text-center py-8 text-gray-500 dark:text-gray-400">
               <p>No se encontraron salas</p>

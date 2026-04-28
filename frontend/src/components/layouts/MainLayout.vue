@@ -162,7 +162,7 @@ const menuItems: Array<{ label: string; path: string; icon: IconName }> = [
 
 const handleLogout = () => {
   authService.logout()
-  router.push('/login')
+  router.push('/')
 }
 </script>
 
