@@ -1,11 +1,11 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Request, Inject } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CategoriaRelevamientoService } from './categoria-relevamiento.service';
 
 @Controller('api/v1/categoria-relevamiento')
 @UseGuards(JwtAuthGuard)
 export class CategoriaRelevamientoController {
-  constructor(private service: CategoriaRelevamientoService) {}
+  constructor(@Inject(CategoriaRelevamientoService) private service: CategoriaRelevamientoService) {}
 
   @Get('productos')
   getProductos() {

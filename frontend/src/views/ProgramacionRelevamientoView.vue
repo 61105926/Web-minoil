@@ -44,7 +44,7 @@
               <input
                 v-model="productoSearch"
                 @focus="showProductoDropdown = true"
-                @blur="() => setTimeout(() => showProductoDropdown = false, 150)"
+                @blur="hideProductoDropdown"
                 type="text"
                 placeholder="Buscar por código o nombre..."
                 class="w-full h-10 border border-gray-300 dark:border-gray-600 rounded-lg px-3 pr-10 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -99,7 +99,7 @@
                 <div class="relative">
                   <input v-model="form.players1"
                     @focus="activePlayerField = 1; showPlayerDropdown = true"
-                    @blur="() => setTimeout(() => showPlayerDropdown = false, 150)"
+                    @blur="hidePlayerDropdown"
                     type="text" placeholder="Buscar competidor..." :disabled="!form.itemCode"
                     class="w-full h-9 border border-gray-300 dark:border-gray-600 rounded-lg px-3 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-40 disabled:cursor-not-allowed" />
                   <div v-if="showPlayerDropdown && activePlayerField === 1 && filteredTradeItems.length > 0"
@@ -112,6 +112,7 @@
                     </button>
                   </div>
                 </div>
+                <p v-if="resolvePlayerName(form.players1)" class="mt-1 text-xs text-orange-600 dark:text-orange-400 truncate">{{ resolvePlayerName(form.players1) }}</p>
               </div>
               <!-- Player 2 -->
               <div>
@@ -119,7 +120,7 @@
                 <div class="relative">
                   <input v-model="form.players2"
                     @focus="activePlayerField = 2; showPlayerDropdown = true"
-                    @blur="() => setTimeout(() => showPlayerDropdown = false, 150)"
+                    @blur="hidePlayerDropdown"
                     type="text" placeholder="Buscar competidor..." :disabled="!form.itemCode"
                     class="w-full h-9 border border-gray-300 dark:border-gray-600 rounded-lg px-3 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-40 disabled:cursor-not-allowed" />
                   <div v-if="showPlayerDropdown && activePlayerField === 2 && filteredTradeItems.length > 0"
@@ -132,6 +133,7 @@
                     </button>
                   </div>
                 </div>
+                <p v-if="resolvePlayerName(form.players2)" class="mt-1 text-xs text-orange-600 dark:text-orange-400 truncate">{{ resolvePlayerName(form.players2) }}</p>
               </div>
               <!-- Player 3 -->
               <div>
@@ -139,7 +141,7 @@
                 <div class="relative">
                   <input v-model="form.players3"
                     @focus="activePlayerField = 3; showPlayerDropdown = true"
-                    @blur="() => setTimeout(() => showPlayerDropdown = false, 150)"
+                    @blur="hidePlayerDropdown"
                     type="text" placeholder="Buscar competidor..." :disabled="!form.itemCode"
                     class="w-full h-9 border border-gray-300 dark:border-gray-600 rounded-lg px-3 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-40 disabled:cursor-not-allowed" />
                   <div v-if="showPlayerDropdown && activePlayerField === 3 && filteredTradeItems.length > 0"
@@ -152,6 +154,7 @@
                     </button>
                   </div>
                 </div>
+                <p v-if="resolvePlayerName(form.players3)" class="mt-1 text-xs text-orange-600 dark:text-orange-400 truncate">{{ resolvePlayerName(form.players3) }}</p>
               </div>
             </div>
           </div>
@@ -444,6 +447,13 @@ const productoSearch       = ref('')
 const formError            = ref('')
 const deleteTarget         = ref<PlayersTask | null>(null)
 const deleting             = ref(false)
+
+function hideProductoDropdown() { window.setTimeout(() => { showProductoDropdown.value = false }, 150) }
+function hidePlayerDropdown()   { window.setTimeout(() => { showPlayerDropdown.value   = false }, 150) }
+function resolvePlayerName(codigo: string | null | undefined): string {
+  if (!codigo) return ''
+  return tradeItems.value.find(t => t.codigo === codigo)?.nombre ?? ''
+}
 
 // Catálogo de competidores
 const editingItem      = ref<TradeItem | null>(null)

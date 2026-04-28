@@ -40,7 +40,6 @@ export class CategoriaRelevamientoService {
       SELECT "ItemCode", "ItemName"
       FROM "BD_MINOIL_PROD"."OITM"
       WHERE "frozenFor" <> 'Y'
-        AND "validFor" = 'Y'
       ORDER BY "ItemName" ASC
     `);
     return rows.map((r: any) => ({
@@ -130,6 +129,45 @@ export class CategoriaRelevamientoService {
       LEFT JOIN "MINOILDES"."TradeItemsPlayers" ti2 ON ti2."codigo" = p."Players2"
       LEFT JOIN "MINOILDES"."TradeItemsPlayers" ti3 ON ti3."codigo" = p."Players3"
       ORDER BY t."fecha" DESC
+    `);
+    return rows.map((r: any) => ({
+      itemCode:      String(r.ItemCode  ?? r.ITEMCODE  ?? ''),
+      itemName:      String(r.ItemName  ?? r.ITEMNAME  ?? ''),
+      fecha:         this.fmtDate(r.fecha    ?? r.FECHA),
+      fechaini:      this.fmtDate(r.fechaini ?? r.FECHAINI),
+      fechafin:      this.fmtDate(r.fechafin ?? r.FECHAFIN),
+      cartera:       Number(r.cartera   ?? r.CARTERA   ?? 0),
+      usuario:       String(r.usuario   ?? r.USUARIO   ?? ''),
+      activo:        Number(r.activo    ?? r.ACTIVO    ?? 1),
+      players1:      r.Players1 ?? r.PLAYERS1 ?? null,
+      players2:      r.Players2 ?? r.PLAYERS2 ?? null,
+      players3:      r.Players3 ?? r.PLAYERS3 ?? null,
+      nombrePlayer1: r.NombrePlayer1 ?? r.NOMBREPLAYER1 ?? null,
+      nombrePlayer2: r.NombrePlayer2 ?? r.NOMBREPLAYER2 ?? null,
+      nombrePlayer3: r.NombrePlayer3 ?? r.NOMBREPLAYER3 ?? null,
+    }));
+  }
+
+  async getTareasActivas(cartera?: number): Promise<PlayersTask[]> {
+    const filtroCartera = cartera != null ? `AND t."cartera" = ${Number(cartera)}` : '';
+    const rows = await this.db.query(`
+      SELECT t."ItemCode", o."ItemName",
+             t."fecha", t."fechaini", t."fechafin",
+             t."cartera", t."usuario", t."activo",
+             p."Players1", p."Players2", p."Players3",
+             ti1."Nombre" AS "NombrePlayer1",
+             ti2."Nombre" AS "NombrePlayer2",
+             ti3."Nombre" AS "NombrePlayer3"
+      FROM "MINOILDES"."TradePlayersTask" t
+      LEFT JOIN "BD_MINOIL_PROD"."OITM" o ON o."ItemCode" = t."ItemCode"
+      LEFT JOIN "MINOILDES"."TradePlayerSap" p ON p."ItemCode" = t."ItemCode"
+      LEFT JOIN "MINOILDES"."TradeItemsPlayers" ti1 ON ti1."codigo" = p."Players1"
+      LEFT JOIN "MINOILDES"."TradeItemsPlayers" ti2 ON ti2."codigo" = p."Players2"
+      LEFT JOIN "MINOILDES"."TradeItemsPlayers" ti3 ON ti3."codigo" = p."Players3"
+      WHERE t."activo" = 1
+        AND CURRENT_DATE BETWEEN t."fechaini" AND t."fechafin"
+        ${filtroCartera}
+      ORDER BY o."ItemName" ASC
     `);
     return rows.map((r: any) => ({
       itemCode:      String(r.ItemCode  ?? r.ITEMCODE  ?? ''),
