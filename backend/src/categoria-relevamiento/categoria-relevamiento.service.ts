@@ -20,12 +20,19 @@ export interface PlayerSap {
 
 export interface PlayersTask {
   itemCode: string;
+  itemName?: string;
   fecha: string;
   fechaini: string;
   fechafin: string;
   cartera: number;
   usuario: string;
   activo: number;
+  players1?: string | null;
+  players2?: string | null;
+  players3?: string | null;
+  nombrePlayer1?: string | null;
+  nombrePlayer2?: string | null;
+  nombrePlayer3?: string | null;
 }
 
 @Injectable()
