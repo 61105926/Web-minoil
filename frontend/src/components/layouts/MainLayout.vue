@@ -149,6 +149,11 @@ const menuItems: Array<{ label: string; path: string; icon: IconName }> = [
     icon: 'document'
   },
   {
+    label: 'Programación Relevamiento',
+    path: '/programacion-relevamiento',
+    icon: 'calendar'
+  },
+  {
     label: 'Distribuidores',
     path: '/distribuidores',
     icon: 'chart'

@@ -1,0 +1,90 @@
+import authService from './auth.service'
+
+const BASE = '/api/v1/categoria-relevamiento'
+
+export interface ProductoSAP {
+  itemCode: string
+  itemName: string
+}
+
+export interface TradeItem {
+  codigo: string
+  nombre: string
+  rubro: string | null
+  grupo: string | null
+  subgrupo: string | null
+  clase: string | null
+  subclase: string | null
+}
+
+export interface PlayerSap {
+  itemCode: string
+  players1: string | null
+  players2: string | null
+  players3: string | null
+}
+
+export interface PlayersTask {
+  itemCode: string
+  itemName?: string
+  fecha: string
+  fechaini: string
+  fechafin: string
+  cartera: number
+  usuario?: string
+  activo?: number
+  players1?: string | null
+  players2?: string | null
+  players3?: string | null
+  nombrePlayer1?: string | null
+  nombrePlayer2?: string | null
+  nombrePlayer3?: string | null
+}
+
+class CategoriaRelevamientoService {
+  async getProductos(): Promise<ProductoSAP[]> {
+    const res = await authService.http.get(`${BASE}/productos`)
+    return res.data
+  }
+
+  async getTradeItems(): Promise<TradeItem[]> {
+    const res = await authService.http.get(`${BASE}/trade-items`)
+    return res.data
+  }
+
+  async createTradeItem(data: TradeItem): Promise<void> {
+    await authService.http.post(`${BASE}/trade-items`, data)
+  }
+
+  async updateTradeItem(codigo: string, data: Partial<TradeItem>): Promise<void> {
+    await authService.http.put(`${BASE}/trade-items/${encodeURIComponent(codigo)}`, data)
+  }
+
+  async deleteTradeItem(codigo: string): Promise<void> {
+    await authService.http.delete(`${BASE}/trade-items/${encodeURIComponent(codigo)}`)
+  }
+
+  async getPlayerSap(itemCode: string): Promise<PlayerSap | null> {
+    const res = await authService.http.get(`${BASE}/player-sap`, { params: { itemCode } })
+    return res.data
+  }
+
+  async upsertPlayerSap(data: PlayerSap): Promise<void> {
+    await authService.http.post(`${BASE}/player-sap`, data)
+  }
+
+  async getTareas(): Promise<PlayersTask[]> {
+    const res = await authService.http.get(`${BASE}/tareas`)
+    return res.data
+  }
+
+  async createTarea(data: Omit<PlayersTask, 'usuario' | 'activo' | 'itemName' | 'players1' | 'players2' | 'players3' | 'nombrePlayer1' | 'nombrePlayer2' | 'nombrePlayer3'>): Promise<void> {
+    await authService.http.post(`${BASE}/tareas`, data)
+  }
+
+  async deleteTarea(itemCode: string, fecha: string): Promise<void> {
+    await authService.http.delete(`${BASE}/tareas/${encodeURIComponent(itemCode)}/${fecha}`)
+  }
+}
+
+export default new CategoriaRelevamientoService()

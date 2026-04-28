@@ -35,6 +35,12 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/programacion-relevamiento',
+      name: 'ProgramacionRelevamiento',
+      component: () => import('@/views/ProgramacionRelevamientoView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/distribuidores',
       name: 'Distribuidores',
       component: () => import('@/views/DistribuidoresView.vue'),

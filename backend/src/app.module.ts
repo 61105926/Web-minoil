@@ -11,6 +11,7 @@ import { ClientesModule } from './clientes/clientes.module';
 import { DistribuidoresModule } from './distribuidores/distribuidores.module';
 import { SqlServerModule } from './sqlserver/sqlserver.module';
 import { MobileAuthModule } from './mobile-auth/mobile-auth.module';
+import { CategoriaRelevamientoModule } from './categoria-relevamiento/categoria-relevamiento.module';
 import { SpaModule } from './spa.module';
 
 @Module({
@@ -37,6 +38,7 @@ import { SpaModule } from './spa.module';
     DistribuidoresModule,
     SqlServerModule,
     MobileAuthModule,
+    CategoriaRelevamientoModule,
     SpaModule, // Importar al final para que se registre después de los demás controladores
   ],
 })
