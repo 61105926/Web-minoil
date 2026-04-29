@@ -12,6 +12,7 @@ import { DistribuidoresModule } from './distribuidores/distribuidores.module';
 import { SqlServerModule } from './sqlserver/sqlserver.module';
 import { MobileAuthModule } from './mobile-auth/mobile-auth.module';
 import { CategoriaRelevamientoModule } from './categoria-relevamiento/categoria-relevamiento.module';
+import { RutasModule } from './rutas/rutas.module';
 import { SpaModule } from './spa.module';
 
 @Module({
@@ -39,6 +40,7 @@ import { SpaModule } from './spa.module';
     SqlServerModule,
     MobileAuthModule,
     CategoriaRelevamientoModule,
+    RutasModule,
     SpaModule, // Importar al final para que se registre después de los demás controladores
   ],
 })
