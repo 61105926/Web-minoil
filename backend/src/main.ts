@@ -33,7 +33,7 @@ async function bootstrap() {
     
     await app.listen(port, '0.0.0.0');
     console.log(`✅ Aplicación corriendo en http://0.0.0.0:${port}`);
-    console.log('✅ Sistema listo');
+    console.log('✅ Sistema listo v2');
   } catch (error) {
     console.error('❌ Error al iniciar la aplicación:', error);
     process.exit(1);

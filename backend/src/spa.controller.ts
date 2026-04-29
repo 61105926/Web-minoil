@@ -10,19 +10,21 @@ export class SpaController {
   // Por lo tanto, /salas será manejado por SalasController antes de llegar aquí
   @Get('*')
   serveSpa(@Req() req: Request, @Res() res: Response) {
-    // Si llegamos aquí, significa que ninguna ruta del backend manejó esta petición GET
-    // Por lo tanto, es seguro servir el index.html del SPA
+    // Nunca servir HTML para rutas de API
+    if (req.path.startsWith('/api') || req.path.startsWith('/salas') || req.path.startsWith('/productos')) {
+      return res.status(404).json({ message: 'Not found', path: req.path });
+    }
+
     const publicPath = join(__dirname, '..', 'public');
     const indexPath = join(publicPath, 'index.html');
-    
-    // Verificar que el archivo existe antes de servirlo
+
     if (existsSync(indexPath)) {
       res.sendFile(indexPath);
     } else {
-      res.status(404).json({ 
+      res.status(404).json({
         message: 'Frontend no encontrado. Por favor, compila el frontend primero.',
         error: 'Not Found',
-        statusCode: 404 
+        statusCode: 404
       });
     }
   }

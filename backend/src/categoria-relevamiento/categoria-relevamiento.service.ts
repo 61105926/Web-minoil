@@ -172,7 +172,6 @@ export class CategoriaRelevamientoService {
       LEFT JOIN "MINOILDES"."TradeItemsPlayers" ti2 ON ti2."codigo" = p."Players2"
       LEFT JOIN "MINOILDES"."TradeItemsPlayers" ti3 ON ti3."codigo" = p."Players3"
       WHERE t."activo" = 1
-        AND CURRENT_DATE BETWEEN t."fechaini" AND t."fechafin"
         ${filtroCartera}
       ORDER BY o."ItemName" ASC
     `);
