@@ -121,6 +121,96 @@
           <!-- Body scrollable -->
           <div class="overflow-y-auto flex-1 px-3 py-3 space-y-2.5">
 
+            <!-- Tabs -->
+            <div class="flex gap-1 bg-gray-100 rounded-xl p-1">
+              <button @click="activeTab = 'trayectoria'; clearClienteMarkers()"
+                class="flex-1 text-xs font-semibold py-1.5 rounded-lg transition-all"
+                :class="activeTab === 'trayectoria' ? 'bg-white shadow text-blue-600' : 'text-gray-400 hover:text-gray-600'">
+                🗺️ Trayectoria
+              </button>
+              <button @click="activeTab = 'clientes'"
+                class="flex-1 text-xs font-semibold py-1.5 rounded-lg transition-all"
+                :class="activeTab === 'clientes' ? 'bg-white shadow text-purple-600' : 'text-gray-400 hover:text-gray-600'">
+                👥 Clientes
+              </button>
+            </div>
+
+            <!-- ── TAB CLIENTES ── -->
+            <template v-if="activeTab === 'clientes'">
+              <div class="bg-purple-50 rounded-2xl p-2.5">
+                <p class="text-xs font-semibold text-purple-600 uppercase tracking-wide mb-1.5">Clientes del día</p>
+                <div class="flex gap-1.5">
+                  <input v-model="fechaClientes" type="date"
+                    class="flex-1 px-2.5 py-1.5 text-xs border border-purple-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                  <button @click="loadClientesDia" :disabled="clientesLoading"
+                    class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-xs font-semibold rounded-xl transition-colors flex items-center gap-1 whitespace-nowrap">
+                    <span v-if="clientesLoading" class="animate-spin text-xs">⏳</span>
+                    <span v-else>📍</span>
+                    {{ clientesLoading ? '...' : 'Ver' }}
+                  </button>
+                </div>
+              </div>
+
+              <div v-if="clientesDia.length > 0">
+                <!-- Resumen -->
+                <div class="grid grid-cols-3 gap-1 text-center mb-2">
+                  <div class="bg-orange-50 rounded-xl py-1.5">
+                    <p class="text-sm font-bold text-orange-600">{{ clientesDia.filter(c => c.estado < 2).length }}</p>
+                    <p class="text-xs text-gray-500">Pendiente</p>
+                  </div>
+                  <div class="bg-blue-50 rounded-xl py-1.5">
+                    <p class="text-sm font-bold text-blue-600">{{ clientesDia.filter(c => c.estado >= 2 && c.estado < 3).length }}</p>
+                    <p class="text-xs text-gray-500">En curso</p>
+                  </div>
+                  <div class="bg-green-50 rounded-xl py-1.5">
+                    <p class="text-sm font-bold text-green-600">{{ clientesDia.filter(c => c.estado >= 3).length }}</p>
+                    <p class="text-xs text-gray-500">Entregado</p>
+                  </div>
+                </div>
+
+                <!-- Lista -->
+                <div class="space-y-1">
+                  <div v-for="(c, i) in clientesDia" :key="c.id"
+                    @click="flyToCliente(c, i)"
+                    class="rounded-xl px-2.5 py-2 flex items-start gap-2 transition-all cursor-pointer border"
+                    :class="clienteSeleccionadoIdx === i
+                      ? 'bg-purple-50 border-purple-300 shadow-sm'
+                      : c.latitud ? 'bg-white border-transparent hover:bg-gray-50 hover:border-gray-200' : 'bg-gray-50 border-transparent opacity-60'">
+                    <span class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white mt-0.5"
+                      :class="c.estado >= 3 ? 'bg-green-500' : c.estado >= 2 ? 'bg-blue-500' : 'bg-orange-400'">
+                      {{ i + 1 }}
+                    </span>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-xs font-semibold text-gray-800 truncate">{{ c.clienteNombre }}</p>
+                      <p class="text-xs text-gray-400 font-mono">{{ c.clienteCodigoSAP }}</p>
+                      <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                        <span class="text-xs px-1.5 py-0.5 rounded-full font-medium"
+                          :class="estadoLabel(c.estado).cls">
+                          {{ estadoLabel(c.estado).text }}
+                        </span>
+                        <span v-if="c.pedidoSAP" class="text-xs text-gray-400">📄 {{ c.pedidoSAP }}</span>
+                        <span v-if="!c.latitud" class="text-xs text-red-300 flex items-center gap-0.5">
+                          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>
+                          Sin GPS
+                        </span>
+                      </div>
+                    </div>
+                    <svg v-if="c.latitud" class="w-3.5 h-3.5 text-gray-300 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <div v-else-if="!clientesLoading && clientesDia.length === 0 && fechaClientes"
+                class="bg-gray-50 rounded-2xl p-3 text-center">
+                <p class="text-xs text-gray-500">Sin entregas para esta fecha</p>
+              </div>
+            </template>
+
+            <!-- ── TAB TRAYECTORIA ── -->
+            <template v-if="activeTab === 'trayectoria'">
+
             <!-- Toggle modo ruta -->
             <div class="flex gap-1 bg-gray-100 rounded-xl p-1">
               <button @click="routeMode = 'calles'"
@@ -220,6 +310,8 @@
               </div>
             </div>
 
+            </template><!-- fin trayectoria -->
+
           </div>
         </div>
       </transition>
@@ -273,7 +365,7 @@ import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import MainLayout from '@/components/layouts/MainLayout.vue'
-import distribuidoresService, { type Distribuidor, type PuntoTrayectoria } from '@/services/distribuidores.service'
+import distribuidoresService, { type Distribuidor, type PuntoTrayectoria, type ClienteEntrega } from '@/services/distribuidores.service'
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN ?? ''
 
@@ -303,6 +395,13 @@ const fechaTrayectoria   = ref(new Date().toISOString().split('T')[0])
 const routeMode          = ref<'calles' | 'velocidad'>('calles')
 const speedStats         = ref({ max: 0, avg: 0 })
 const paradas = ref<{ lat: number; lng: number; inicio: string; fin: string; duracion: number }[]>([])
+
+const activeTab             = ref<'trayectoria' | 'clientes'>('trayectoria')
+const clientesDia           = ref<ClienteEntrega[]>([])
+const clientesLoading       = ref(false)
+const fechaClientes         = ref(new Date().toISOString().split('T')[0])
+const clienteSeleccionadoIdx = ref<number | null>(null)
+let clienteMarkers: mapboxgl.Marker[] = []
 
 let map: mapboxgl.Map | null = null
 const markerMap = new Map<number, { marker: mapboxgl.Marker; lng: number; lat: number }>()
@@ -422,7 +521,10 @@ function selectDistribuidor(d: Distribuidor) {
 
 function closeCard() {
   clearTrayectoria(); trayectoria.value = []; paradas.value = []; trayectoriaLoaded.value = false
-  matchedRouteCoords = null; selected.value = null; syncMarkers()
+  matchedRouteCoords = null
+  clearClienteMarkers(); clientesDia.value = []
+  activeTab.value = 'trayectoria'
+  selected.value = null; syncMarkers()
 }
 
 function haversine(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -628,6 +730,101 @@ function flyToParada(p: { lat: number; lng: number }) {
   map?.flyTo({ center: [p.lng, p.lat], zoom: 16, speed: 1.5 })
 }
 
+function estadoLabel(e: number) {
+  if (e >= 3) return { text: 'Entregado', cls: 'bg-green-100 text-green-700' }
+  if (e >= 2) return { text: 'En curso',  cls: 'bg-blue-100 text-blue-700'  }
+  return              { text: 'Pendiente', cls: 'bg-gray-100 text-gray-500'  }
+}
+
+function clearClienteMarkers() {
+  clienteMarkers.forEach(m => m.remove())
+  clienteMarkers = []
+  clienteSeleccionadoIdx.value = null
+  if (map?.getLayer('ruta-clientes')) map.removeLayer('ruta-clientes')
+  if (map?.getSource('ruta-clientes')) map.removeSource('ruta-clientes')
+}
+
+function flyToCliente(c: ClienteEntrega, idx: number) {
+  if (!c.latitud || !c.longitud) return
+  clienteSeleccionadoIdx.value = idx
+  map?.flyTo({ center: [c.longitud, c.latitud], zoom: 17, speed: 1.4 })
+  const marker = clienteMarkers[idx]
+  if (marker) {
+    window.setTimeout(() => marker.togglePopup(), 600)
+  }
+}
+
+async function drawRutaClientes(clientes: ClienteEntrega[]) {
+  const conCoordenadas = clientes.filter(c => c.latitud != null && c.longitud != null)
+  if (!map || conCoordenadas.length === 0) return
+
+  clearClienteMarkers()
+
+  // Marcadores numerados
+  conCoordenadas.forEach((c, i) => {
+    const el = document.createElement('div')
+    el.style.cssText = `
+      width:28px;height:28px;border-radius:50%;
+      background:${c.estado >= 3 ? '#22c55e' : c.estado >= 2 ? '#3b82f6' : '#f97316'};
+      border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.35);
+      display:flex;align-items:center;justify-content:center;
+      font-size:11px;font-weight:bold;color:white;cursor:pointer;`
+    el.textContent = String(i + 1)
+    const popup = new mapboxgl.Popup({ offset: 16, closeButton: false })
+      .setHTML(`<div style="font-size:12px;line-height:1.6;padding:2px 4px"><b>${c.clienteNombre}</b><br>${c.clienteCodigoSAP}${c.pedidoSAP ? '<br>Pedido: ' + c.pedidoSAP : ''}</div>`)
+    const marker = new mapboxgl.Marker({ element: el })
+      .setLngLat([c.longitud!, c.latitud!])
+      .setPopup(popup)
+      .addTo(map!)
+    el.addEventListener('click', () => popup.isOpen() ? popup.remove() : popup.addTo(map!))
+    clienteMarkers.push(marker)
+  })
+
+  if (conCoordenadas.length < 2) {
+    map.flyTo({ center: [conCoordenadas[0].longitud!, conCoordenadas[0].latitud!], zoom: 14 })
+    return
+  }
+
+  // Ruta óptima con Mapbox Optimization API (máx 12) o Directions
+  const coords = conCoordenadas.map(c => `${c.longitud},${c.latitud}`).join(';')
+  try {
+    const api = conCoordenadas.length <= 12
+      ? `https://api.mapbox.com/optimized-trips/v1/mapbox/driving/${coords}?access_token=${mapboxgl.accessToken}&geometries=geojson&source=first&destination=last&roundtrip=false&overview=full`
+      : `https://api.mapbox.com/directions/v5/mapbox/driving/${coords}?access_token=${mapboxgl.accessToken}&geometries=geojson&overview=full`
+    const res  = await fetch(api)
+    const data = await res.json()
+    const geometry = conCoordenadas.length <= 12
+      ? data.trips?.[0]?.geometry
+      : data.routes?.[0]?.geometry
+    if (geometry) {
+      map.addSource('ruta-clientes', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry } })
+      map.addLayer({ id: 'ruta-clientes', type: 'line', source: 'ruta-clientes',
+        paint: { 'line-color': '#8b5cf6', 'line-width': 4, 'line-dasharray': [2, 1.5] } })
+    }
+  } catch (err) {
+    console.warn('[RutaClientes] error API:', err)
+  }
+
+  const bounds = new mapboxgl.LngLatBounds()
+  conCoordenadas.forEach(c => bounds.extend([c.longitud!, c.latitud!]))
+  map!.fitBounds(bounds, { padding: 80 })
+}
+
+async function loadClientesDia() {
+  if (!selected.value) return
+  clientesLoading.value = true
+  clientesDia.value = []
+  clienteSeleccionadoIdx.value = null
+  try {
+    clientesDia.value = await distribuidoresService.getClientesDia(selected.value.NOMBRE, fechaClientes.value)
+    await drawRutaClientes(clientesDia.value)
+  } catch (err: any) {
+    console.error('[ClientesDia] error:', err.response?.data ?? err.message)
+  } finally {
+    clientesLoading.value = false
+  }
+}
+
 async function loadDistribuidores() {
   loading.value = true
   try {
@@ -666,6 +863,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   clearTrayectoria()
+  clearClienteMarkers()
   for (const entry of markerMap.values()) entry.marker.remove()
   markerMap.clear(); map?.remove()
 })

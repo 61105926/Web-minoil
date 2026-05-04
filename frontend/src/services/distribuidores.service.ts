@@ -22,6 +22,17 @@ export interface PuntoTrayectoria {
   CREATED_AT: string
 }
 
+export interface ClienteEntrega {
+  id: number
+  clienteCodigoSAP: string
+  clienteNombre: string
+  latitud: number | null
+  longitud: number | null
+  pedidoSAP: string | null
+  facturaSAP: string | null
+  estado: number
+}
+
 class DistribuidoresService {
   async getAll(): Promise<Distribuidor[]> {
     const res = await authService.http.get('/api/v1/mobile/distribuidores')
@@ -34,6 +45,13 @@ class DistribuidoresService {
 
   async getTrayectoria(nombre: string, fecha: string): Promise<PuntoTrayectoria[]> {
     const res = await authService.http.get('/api/v1/mobile/distribuidores/trayectoria', {
+      params: { nombre, fecha },
+    })
+    return res.data
+  }
+
+  async getClientesDia(nombre: string, fecha: string): Promise<ClienteEntrega[]> {
+    const res = await authService.http.get('/api/v1/mobile/distribuidores/clientes-dia', {
       params: { nombre, fecha },
     })
     return res.data
