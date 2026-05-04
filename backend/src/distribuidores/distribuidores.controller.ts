@@ -31,6 +31,16 @@ export class DistribuidoresController {
     return this.distribuidoresService.getTrayectoria(nombre, fecha);
   }
 
+  @Get('clientes-dia')
+  @UseGuards(JwtAuthGuard)
+  getClientesDia(
+    @Query('nombre') nombre: string,
+    @Query('fecha')  fecha?: string,
+  ) {
+    const hoy = new Date().toISOString().split('T')[0];
+    return this.distribuidoresService.getClientesDia(nombre, fecha ?? hoy);
+  }
+
   @Put('ubicacion')
   @UseGuards(MobileJwtGuard)
   updateUbicacion(
