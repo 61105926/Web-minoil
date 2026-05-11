@@ -62,33 +62,43 @@ export class DatabaseService implements OnModuleDestroy {
     }
   }
 
+  private async execQuery(sql: string, params: any[]): Promise<any[]> {
+    return new Promise((resolve, reject) => {
+      this.connection.exec(sql, params, (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows || []);
+      });
+    });
+  }
+
   async query(sql: string, params: any[] = []): Promise<any[]> {
     try {
-      // Intentar conectar si no hay conexión
       if (!this.connection) {
         try {
           await this.connect();
         } catch (error: any) {
-          // Si falla la conexión, lanzar error para que los servicios lo manejen
           throw new Error(`No se pudo conectar a SAP HANA: ${error.message}`);
         }
       }
 
-      // Si aún no hay conexión (modo demo), lanzar error
       if (!this.connection) {
         throw new Error('Conexión a SAP HANA no disponible - Modo DEMO');
       }
 
-      return new Promise((resolve, reject) => {
-        this.connection.exec(sql, params, (err, rows) => {
-          if (err) {
-            console.error('Error ejecutando query:', err.message);
-            reject(err);
-          } else {
-            resolve(rows || []);
-          }
-        });
-      });
+      try {
+        return await this.execQuery(sql, params);
+      } catch (execError: any) {
+        // Si parece un error de conexión caída, reconectar y reintentar una vez
+        const msg = String(execError.message ?? '').toLowerCase();
+        if (msg.includes('connection') || msg.includes('socket') || msg.includes('closed') || msg.includes('network')) {
+          console.warn('⚠️  Conexión HANA caída, reconectando...', execError.message);
+          this.connection = null;
+          await this.connect();
+          return await this.execQuery(sql, params);
+        }
+        console.error('Error ejecutando query:', execError.message);
+        throw execError;
+      }
     } catch (error: any) {
       console.error('Error en query:', error.message);
       throw error;

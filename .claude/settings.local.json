@@ -1,7 +1,15 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(xargs cat -n)",
+      "Bash(npm run *)",
+      "Bash(ps -p 47156 -o pid,command)",
+      "Bash(kill 47156)",
+      "Bash(echo \"PID: $!\")",
+      "Bash(sleep 4 && cat /tmp/backend.log)",
+      "Read(//private/tmp/**)",
+      "Bash(xargs kill -9)"
     ]
   }
 }

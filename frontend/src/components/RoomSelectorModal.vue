@@ -38,10 +38,13 @@
               class="w-full flex items-center justify-start p-4 hover:bg-blue-50 dark:hover:bg-gray-700 text-left rounded-lg border border-transparent hover:border-blue-300 dark:hover:border-blue-600 transition-all group"
             >
               <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">{{ room.nombre || room.codigo }}</span>
                   <span v-if="room.alias" class="flex-shrink-0 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 text-xs font-bold px-2 py-0.5 rounded-full">{{ room.alias }}</span>
                 </div>
-                <div v-if="room.glblLocNum" class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ room.glblLocNum }}</div>
+                <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                  {{ room.codigo }}<span v-if="room.glblLocNum"> · {{ room.glblLocNum }}</span>
+                </div>
               </div>
             </button>
             <div v-if="filteredRooms.length === 0" class="text-center py-8 text-gray-500 dark:text-gray-400">

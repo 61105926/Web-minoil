@@ -122,10 +122,17 @@ export class ProductosService {
 
   async getProductosPorSala(cardCode: string, tipo: string = 'impost'): Promise<ProductoConLotes[]> {
     try {
+      // Validar cardCode para uso seguro en query (solo caracteres alfanuméricos y guiones)
+      if (!/^[A-Z0-9\-_]+$/i.test(cardCode)) {
+        throw new Error(`CardCode inválido: ${cardCode}`);
+      }
+
       const filtroProducto = tipo === 'cerveza'
         ? 'I."ItmsGrpCod" = 108'
         : `LOWER(I."ItemName") LIKE '%impost%'`;
 
+      // Nota: el filtro de CardCode se interpola directamente (validado arriba) porque
+      // @sap/hana-client puede no bindear correctamente '?' dentro de subqueries.
       const query = `
         SELECT *
         FROM (
@@ -151,12 +158,12 @@ export class ProductosService {
                 ON L."BaseType" = 13
                 AND L."BaseEntry" = D."DocEntry"
                 AND L."BaseLinNum" = D."LineNum"
-            INNER JOIN "BD_MINOIL_PROD"."OBTN" AL 
+            INNER JOIN "BD_MINOIL_PROD"."OBTN" AL
                 ON AL."DistNumber" = L."BatchNum"
                 AND AL."ItemCode" = L."ItemCode"
-            WHERE 
+            WHERE
                 ${filtroProducto}
-                AND A."CardCode" = ?
+                AND A."CardCode" = '${cardCode}'
                 AND I."frozenFor" <> 'Y'
                 AND I."validFor" = 'Y'
         ) AS sub
@@ -164,30 +171,38 @@ export class ProductosService {
         ORDER BY NombreProducto, FechaFactura DESC
       `;
 
-      const resultados = await this.databaseService.query(query, [cardCode]);
+      console.log(`🔵 SQL para ${cardCode}:`, query.trim().substring(0, 300));
+      const resultados = await this.databaseService.query(query, []);
+
+      console.log(`🔵 Filas crudas de HANA para ${cardCode}: ${resultados.length}`);
+      if (resultados.length > 0) {
+        console.log('🔵 Claves del primer row:', Object.keys(resultados[0]));
+        console.log('🔵 Primer row completo:', JSON.stringify(resultados[0]));
+      }
+
+      // Helper insensible a mayúsculas para leer columnas de HANA
+      const col = (row: any, ...names: string[]): any => {
+        const upper = Object.fromEntries(
+          Object.entries(row).map(([k, v]) => [k.toUpperCase(), v])
+        );
+        for (const name of names) {
+          const v = upper[name.toUpperCase()];
+          if (v !== undefined && v !== null) return v;
+        }
+        return undefined;
+      };
 
       // Agrupar por producto
       const productosMap = new Map<string, ProductoConLotes>();
 
       resultados.forEach((row: any) => {
-        // HANA/dev drivers pueden devolver columnas en distintos formatos; ItemCode es el código SAP
-        const codigo =
-          row.CODIGOPRODUCTO ??
-          row.CodigoProducto ??
-          row.ITEMCODE ??
-          row.ItemCode ??
-          (row as any).codigoproducto;
-        const nombre =
-          row.NOMBREPRODUCTO ??
-          row.NombreProducto ??
-          row.ITEMNAME ??
-          row.ItemName ??
-          (row as any).nombreproducto;
-        const lote = row.LOTE || row.Lote;
-        const cantidadVendida = row.CANTIDADVENDIDA || row.CantidadVendida;
-        const fechaFactura = row.FECHAFACTURA || row.FechaFactura;
-        const fechaVencimiento = row.FECHAVENCIMIENTO || row.FechaVencimiento;
-        const numeroFactura = row.NUMEROFACTURA || row.NumeroFactura;
+        const codigo = col(row, 'CODIGOPRODUCTO', 'CodigoProducto', 'ITEMCODE', 'ItemCode');
+        const nombre = col(row, 'NOMBREPRODUCTO', 'NombreProducto', 'ITEMNAME', 'ItemName');
+        const lote = col(row, 'LOTE', 'Lote', 'BATCHNUM', 'BatchNum');
+        const cantidadVendida = col(row, 'CANTIDADVENDIDA', 'CantidadVendida', 'QUANTITY', 'Quantity');
+        const fechaFactura = col(row, 'FECHAFACTURA', 'FechaFactura', 'DOCDATE', 'DocDate');
+        const fechaVencimiento = col(row, 'FECHAVENCIMIENTO', 'FechaVencimiento', 'EXPDATE', 'ExpDate');
+        const numeroFactura = col(row, 'NUMEROFACTURA', 'NumeroFactura', 'DOCNUM', 'DocNum');
 
         if (!codigo || !nombre) {
           console.warn('Fila sin código o nombre de producto:', row);
@@ -251,8 +266,8 @@ export class ProductosService {
 
       return productos;
     } catch (error: any) {
-      console.error('Error obteniendo productos:', error);
-      // Si hay error, devolver productos de ejemplo
+      console.error(`❌ Error obteniendo productos para sala ${cardCode}:`, error.message ?? error);
+      throw error;
     }
   }
 
