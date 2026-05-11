@@ -444,14 +444,14 @@
               <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
 
                 <Button
-                  @click="guardarYDescargar"
-                  :disabled="guardandoEnBD"
-                  class="h-14 text-base font-bold bg-gradient-to-r from-green-600 to-green-700 text-white hover:opacity-90 shadow-lg disabled:opacity-50"
+                  @click="descargarResumen"
+                  variant="outline"
+                  class="h-14 text-base font-bold border-2 border-green-600 dark:border-green-500 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900"
                 >
                   <svg class="h-5 w-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                  {{ guardandoEnBD ? 'Guardando...' : 'Descargar PDF' }}
+                  Descargar PDF
                 </Button>
                 <Button
                   @click="resetearFormulario"
@@ -472,7 +472,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import MainLayout from '@/components/layouts/MainLayout.vue'
 import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
@@ -864,10 +864,11 @@ const resetearFormulario = () => {
   productosParaReposicion.value = []
 }
 
-const guardarYDescargar = async () => {
-  await guardarEnBaseDatos()
-  descargarResumen()
-}
+watch(fase, (nuevaFase) => {
+  if (nuevaFase === 'informe') {
+    guardarEnBaseDatos()
+  }
+})
 
 const cargarSalas = async () => {
   loadingSalas.value = true
