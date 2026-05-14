@@ -21,6 +21,6 @@ import { SqlServerModule } from '../sqlserver/sqlserver.module';
   ],
   controllers: [MobileAuthController],
   providers:   [MobileAuthService, MobileJwtStrategy],
-  exports:     [MobileJwtStrategy],
+  exports:     [MobileJwtStrategy, MobileAuthService],
 })
 export class MobileAuthModule {}

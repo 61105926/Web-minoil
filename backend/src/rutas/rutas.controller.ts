@@ -1,9 +1,9 @@
 import { Controller, Get, Param, Query, UseGuards, Inject } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { MobileJwtGuard } from '../mobile-auth/mobile-jwt.guard';
 import { RutasService } from './rutas.service';
 
 @Controller('api/v1/mobile/rutas')
-@UseGuards(JwtAuthGuard)
+@UseGuards(MobileJwtGuard)
 export class RutasController {
   constructor(
     @Inject(RutasService) private service: RutasService,

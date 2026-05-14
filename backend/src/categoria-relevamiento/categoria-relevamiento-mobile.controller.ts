@@ -1,5 +1,5 @@
 import { Controller, Get, Query, UseGuards, Inject } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { MobileJwtGuard } from '../mobile-auth/mobile-jwt.guard';
 import { CategoriaRelevamientoService } from './categoria-relevamiento.service';
 
 /**
@@ -23,7 +23,7 @@ import { CategoriaRelevamientoService } from './categoria-relevamiento.service';
  * ]
  */
 @Controller('api/v1/mobile/categoria-relevamiento')
-@UseGuards(JwtAuthGuard)
+@UseGuards(MobileJwtGuard)
 export class CategoriaRelevamientoMobileController {
   constructor(
     @Inject(CategoriaRelevamientoService) private service: CategoriaRelevamientoService,
@@ -58,5 +58,30 @@ export class CategoriaRelevamientoMobileController {
   @Get('trade-items')
   getTradeItems() {
     return this.service.getTradeItems();
+  }
+
+  @Get('tareas')
+  async getTareas(@Query('cartera') cartera?: string) {
+    const carteraNum = cartera != null && cartera !== '' ? parseInt(cartera, 10) : undefined;
+    const tareas = await this.service.getTareas();
+
+    const filtradas = carteraNum != null
+      ? tareas.filter(t => t.cartera === carteraNum)
+      : tareas;
+
+    return filtradas.map(t => ({
+      itemCode: t.itemCode,
+      itemName: t.itemName,
+      fecha:    t.fecha,
+      fechaini: t.fechaini,
+      fechafin: t.fechafin,
+      cartera:  t.cartera,
+      activo:   t.activo,
+      players: [
+        t.players1 && t.players1 !== '0' ? { codigo: t.players1, nombre: t.nombrePlayer1 ?? t.players1 } : null,
+        t.players2 && t.players2 !== '0' ? { codigo: t.players2, nombre: t.nombrePlayer2 ?? t.players2 } : null,
+        t.players3 && t.players3 !== '0' ? { codigo: t.players3, nombre: t.nombrePlayer3 ?? t.players3 } : null,
+      ].filter(Boolean),
+    }));
   }
 }
