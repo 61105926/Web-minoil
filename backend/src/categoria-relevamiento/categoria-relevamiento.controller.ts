@@ -18,13 +18,19 @@ export class CategoriaRelevamientoController {
   }
 
   @Get('player-sap')
-  getPlayerSap(@Query('itemCode') itemCode: string) {
-    return this.service.getPlayerSap(itemCode);
+  getPlayerSap(@Query('itemCode') itemCode?: string) {
+    if (itemCode) return this.service.getPlayerSap(itemCode);
+    return this.service.getAllPlayerSap();
   }
 
   @Post('player-sap')
   upsertPlayerSap(@Body() body: any) {
     return this.service.upsertPlayerSap(body);
+  }
+
+  @Delete('player-sap/:itemCode')
+  deletePlayerSap(@Param('itemCode') itemCode: string) {
+    return this.service.deletePlayerSap(itemCode);
   }
 
   @Get('tareas')

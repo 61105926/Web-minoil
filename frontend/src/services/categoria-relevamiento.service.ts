@@ -19,9 +19,13 @@ export interface TradeItem {
 
 export interface PlayerSap {
   itemCode: string
+  itemName?: string
   players1: string | null
   players2: string | null
   players3: string | null
+  nombrePlayer1?: string | null
+  nombrePlayer2?: string | null
+  nombrePlayer3?: string | null
 }
 
 export interface PlayersTask {
@@ -47,6 +51,7 @@ class CategoriaRelevamientoService {
     return res.data
   }
 
+  // ── Catálogo de competidores ────────────────────────────────────────────────
   async getTradeItems(): Promise<TradeItem[]> {
     const res = await authService.http.get(`${BASE}/trade-items`)
     return res.data
@@ -64,6 +69,12 @@ class CategoriaRelevamientoService {
     await authService.http.delete(`${BASE}/trade-items/${encodeURIComponent(codigo)}`)
   }
 
+  // ── Asignación producto → competidores ──────────────────────────────────────
+  async getAllPlayerSap(): Promise<PlayerSap[]> {
+    const res = await authService.http.get(`${BASE}/player-sap`)
+    return res.data
+  }
+
   async getPlayerSap(itemCode: string): Promise<PlayerSap | null> {
     const res = await authService.http.get(`${BASE}/player-sap`, { params: { itemCode } })
     return res.data
@@ -73,6 +84,11 @@ class CategoriaRelevamientoService {
     await authService.http.post(`${BASE}/player-sap`, data)
   }
 
+  async deletePlayerSap(itemCode: string): Promise<void> {
+    await authService.http.delete(`${BASE}/player-sap/${encodeURIComponent(itemCode)}`)
+  }
+
+  // ── Programación de tareas ──────────────────────────────────────────────────
   async getTareas(): Promise<PlayersTask[]> {
     const res = await authService.http.get(`${BASE}/tareas`)
     return res.data

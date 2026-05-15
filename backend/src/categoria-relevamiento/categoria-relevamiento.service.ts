@@ -73,6 +73,40 @@ export class CategoriaRelevamientoService {
     }));
   }
 
+  // Todas las asignaciones con nombres resueltos
+  async getAllPlayerSap(): Promise<(PlayerSap & { itemName?: string; nombrePlayer1?: string; nombrePlayer2?: string; nombrePlayer3?: string })[]> {
+    const rows = await this.db.query(`
+      SELECT p."ItemCode", o."ItemName",
+             p."Players1", p."Players2", p."Players3",
+             ti1."Nombre" AS "NombrePlayer1",
+             ti2."Nombre" AS "NombrePlayer2",
+             ti3."Nombre" AS "NombrePlayer3"
+      FROM "MINOILDES"."TradePlayerSap" p
+      LEFT JOIN "BD_MINOIL_PROD"."OITM" o ON o."ItemCode" = p."ItemCode"
+      LEFT JOIN "MINOILDES"."TradeItemsPlayers" ti1 ON ti1."codigo" = p."Players1"
+      LEFT JOIN "MINOILDES"."TradeItemsPlayers" ti2 ON ti2."codigo" = p."Players2"
+      LEFT JOIN "MINOILDES"."TradeItemsPlayers" ti3 ON ti3."codigo" = p."Players3"
+      ORDER BY o."ItemName" ASC
+    `);
+    return rows.map((r: any) => ({
+      itemCode:      String(r.ItemCode      ?? r.ITEMCODE      ?? ''),
+      itemName:      String(r.ItemName      ?? r.ITEMNAME      ?? ''),
+      players1:      r.Players1    ?? r.PLAYERS1    ?? null,
+      players2:      r.Players2    ?? r.PLAYERS2    ?? null,
+      players3:      r.Players3    ?? r.PLAYERS3    ?? null,
+      nombrePlayer1: r.NombrePlayer1 ?? r.NOMBREPLAYER1 ?? null,
+      nombrePlayer2: r.NombrePlayer2 ?? r.NOMBREPLAYER2 ?? null,
+      nombrePlayer3: r.NombrePlayer3 ?? r.NOMBREPLAYER3 ?? null,
+    }));
+  }
+
+  async deletePlayerSap(itemCode: string): Promise<void> {
+    await this.db.execute(
+      `DELETE FROM "MINOILDES"."TradePlayerSap" WHERE "ItemCode" = ?`,
+      [String(itemCode)],
+    );
+  }
+
   // Players asignados a un ItemCode
   async getPlayerSap(itemCode: string): Promise<PlayerSap | null> {
     const rows = await this.db.query(
