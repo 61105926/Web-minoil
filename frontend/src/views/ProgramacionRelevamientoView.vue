@@ -1,32 +1,57 @@
 <template>
   <MainLayout>
-    <div class="max-w-7xl mx-auto space-y-6">
+    <div class="max-w-7xl mx-auto space-y-5">
 
-      <!-- ── Header ──────────────────────────────────────────────────────────── -->
-      <div>
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Relevamiento Comercial</h1>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Gestión de competidores, asignaciones y programación de campo</p>
+      <!-- ── Header branded ─────────────────────────────────────────────────── -->
+      <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#012F9D] to-[#1D4ED8] px-8 py-6 shadow-lg">
+        <div class="absolute -right-10 -top-10 w-56 h-56 rounded-full bg-white/5 pointer-events-none"></div>
+        <div class="absolute right-16 bottom-0 w-32 h-32 rounded-full bg-[#FFCE00]/10 pointer-events-none"></div>
+        <div class="relative flex flex-col sm:flex-row sm:items-center gap-5">
+          <div class="flex items-center gap-4 flex-1 min-w-0">
+            <div class="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center flex-shrink-0">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+              </svg>
+            </div>
+            <div>
+              <h1 class="text-xl font-extrabold text-white leading-tight">Relevamiento Comercial</h1>
+              <p class="text-blue-200 text-sm mt-0.5">Competidores · Asignaciones · Programación de campo</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <div class="flex items-center gap-2 bg-white/10 rounded-xl px-4 py-2">
+              <span class="text-2xl font-black text-white">{{ asignaciones.length }}</span>
+              <span class="text-xs text-blue-200 font-medium leading-tight">asig-<br>naciones</span>
+            </div>
+            <div class="flex items-center gap-2 bg-white/10 rounded-xl px-4 py-2">
+              <span class="text-2xl font-black text-white">{{ tareas.length }}</span>
+              <span class="text-xs text-blue-200 font-medium leading-tight">progra-<br>maciones</span>
+            </div>
+            <div class="flex items-center gap-2 bg-[#FFCE00]/20 rounded-xl px-4 py-2 border border-[#FFCE00]/30">
+              <span class="text-2xl font-black text-[#FFCE00]">{{ tradeItems.length }}</span>
+              <span class="text-xs text-yellow-200 font-medium leading-tight">competi-<br>dores</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- ── Tabs ────────────────────────────────────────────────────────────── -->
-      <div class="border-b border-gray-200 dark:border-gray-700">
-        <nav class="flex gap-0">
-          <button v-for="tab in tabs" :key="tab.id" @click="activeTab = tab.id"
+      <!-- ── Tabs segmented ─────────────────────────────────────────────────── -->
+      <div class="flex gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-2xl">
+        <button v-for="tab in tabs" :key="tab.id" @click="activeTab = tab.id"
+          :class="activeTab === tab.id
+            ? 'bg-[#012F9D] text-white shadow-md'
+            : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-white/60 dark:hover:bg-gray-700'"
+          class="flex items-center gap-2 flex-1 justify-center px-4 py-2.5 text-sm font-bold rounded-xl transition-all whitespace-nowrap">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="tab.icon" />
+          </svg>
+          {{ tab.label }}
+          <span v-if="tab.count !== undefined"
             :class="activeTab === tab.id
-              ? 'border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400'
-              : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300'"
-            class="flex items-center gap-2 px-5 py-3.5 text-sm font-semibold border-b-2 transition-all -mb-px whitespace-nowrap">
-            <component :is="'svg'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="tab.icon" />
-            </component>
-            {{ tab.label }}
-            <span v-if="tab.count !== undefined"
-              :class="activeTab === tab.id
-                ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300'
-                : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'"
-              class="text-xs font-bold px-2 py-0.5 rounded-full">{{ tab.count }}</span>
-          </button>
-        </nav>
+              ? 'bg-white/20 text-white'
+              : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'"
+            class="text-xs font-black px-2 py-0.5 rounded-full">{{ tab.count }}</span>
+        </button>
       </div>
 
       <!-- ══════════════════════ TAB: ASIGNACIÓN ════════════════════════════════ -->
@@ -64,19 +89,19 @@
         <!-- Grid de tarjetas -->
         <div v-else-if="filteredAsig.length > 0"
           class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div v-for="a in filteredAsig" :key="a.itemCode"
-            class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+          <div v-for="a in pagedAsig" :key="a.itemCode"
+            class="bg-white dark:bg-gray-800 rounded-xl border border-l-4 border-gray-200 dark:border-gray-700 border-l-[#012F9D] shadow-sm hover:shadow-md transition-all overflow-hidden group">
             <!-- Card header -->
-            <div class="flex items-start justify-between px-4 pt-4 pb-3 border-b border-gray-100 dark:border-gray-700">
+            <div class="flex items-start justify-between px-4 pt-4 pb-3">
               <div class="min-w-0 flex-1">
-                <span class="font-mono text-xs font-bold text-blue-600 dark:text-blue-400">{{ a.itemCode }}</span>
-                <p class="text-sm font-semibold text-gray-800 dark:text-gray-200 mt-0.5 leading-tight" :title="a.itemName">
+                <span class="inline-block font-mono text-[10px] font-black text-[#012F9D] dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded mb-1">{{ a.itemCode }}</span>
+                <p class="text-sm font-semibold text-gray-800 dark:text-gray-200 leading-tight" :title="a.itemName">
                   {{ a.itemName || '—' }}
                 </p>
               </div>
-              <div class="flex gap-1 ml-2 flex-shrink-0">
+              <div class="flex gap-1 ml-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button @click="openAsigModal(a)" title="Editar"
-                  class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors">
+                  class="p-1.5 text-gray-400 hover:text-[#012F9D] hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                   </svg>
@@ -89,28 +114,44 @@
                 </button>
               </div>
             </div>
+            <!-- Divider -->
+            <div class="mx-4 border-t border-gray-100 dark:border-gray-700 mb-3"></div>
             <!-- Competitors -->
-            <div class="px-4 py-3 space-y-2">
+            <div class="px-4 pb-4 space-y-2">
               <template v-for="n in [1,2,3]">
                 <div v-if="getAsigPlayer(a, n)" :key="`p${n}`" class="flex items-center gap-2">
-                  <span class="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                    :class="n===1?'bg-orange-100 text-orange-600':n===2?'bg-amber-100 text-amber-600':'bg-yellow-100 text-yellow-700'">
-                    {{ n }}
+                  <span class="w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black flex-shrink-0"
+                    :class="n===1?'bg-orange-500 text-white':n===2?'bg-amber-500 text-white':'bg-yellow-500 text-white'">
+                    P{{ n }}
                   </span>
-                  <span class="text-xs font-mono text-gray-500 dark:text-gray-400 w-12 flex-shrink-0">{{ getAsigPlayer(a, n) }}</span>
-                  <span class="text-xs text-gray-700 dark:text-gray-300 truncate">{{ getAsigPlayerName(a, n) }}</span>
+                  <span class="text-[10px] font-mono font-bold text-gray-400 dark:text-gray-500 w-12 flex-shrink-0">{{ getAsigPlayer(a, n) }}</span>
+                  <span class="text-xs text-gray-700 dark:text-gray-300 truncate font-medium">{{ getAsigPlayerName(a, n) }}</span>
                 </div>
-                <div v-else :key="`e${n}`" class="flex items-center gap-2 opacity-40">
-                  <span class="w-5 h-5 rounded-full border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center text-xs font-bold text-gray-400">{{ n }}</span>
-                  <span class="text-xs text-gray-400 italic">Sin asignar</span>
+                <div v-else :key="`e${n}`" class="flex items-center gap-2">
+                  <span class="w-6 h-6 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-600 flex items-center justify-center text-[10px] font-black text-gray-300 dark:text-gray-600">P{{ n }}</span>
+                  <span class="text-xs text-gray-300 dark:text-gray-600 italic">Sin asignar</span>
                 </div>
               </template>
             </div>
           </div>
         </div>
 
+        <!-- Paginador Asignación -->
+        <div v-if="filteredAsig.length > PAGE_SIZE" class="flex items-center justify-between mt-4">
+          <p class="text-xs text-gray-400 dark:text-gray-500">
+            {{ (asigPage-1)*PAGE_SIZE+1 }}–{{ Math.min(asigPage*PAGE_SIZE, filteredAsig.length) }} de {{ filteredAsig.length }}
+          </p>
+          <div class="flex gap-1">
+            <button @click="asigPage--" :disabled="asigPage===1"
+              class="px-3 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">‹ Ant.</button>
+            <span class="px-3 py-1.5 text-xs rounded-lg bg-[#012F9D] text-white font-bold">{{ asigPage }} / {{ asigPages }}</span>
+            <button @click="asigPage++" :disabled="asigPage===asigPages"
+              class="px-3 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">Sig. ›</button>
+          </div>
+        </div>
+
         <!-- Empty state -->
-        <div v-else class="flex flex-col items-center justify-center py-20 text-gray-400 dark:text-gray-500">
+        <div v-else-if="filteredAsig.length===0" class="flex flex-col items-center justify-center py-20 text-gray-400 dark:text-gray-500">
           <svg class="w-14 h-14 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
           </svg>
@@ -172,37 +213,54 @@
                 <!-- Competidores -->
                 <div>
                   <label class="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-3">Competidores asignados</label>
-                  <div class="space-y-3">
-                    <div v-for="n in [1,2,3]" :key="n" class="flex items-center gap-3">
-                      <span class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 shadow-sm"
-                        :class="n===1?'bg-orange-100 text-orange-600':n===2?'bg-amber-100 text-amber-600':'bg-yellow-100 text-yellow-700'">
-                        {{ n }}
+                  <div class="space-y-2">
+                    <div v-for="n in [1,2,3]" :key="n" class="flex items-center gap-2">
+                      <!-- Badge P1/P2/P3 -->
+                      <span class="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black flex-shrink-0 shadow-sm"
+                        :class="n===1?'bg-orange-500 text-white':n===2?'bg-amber-500 text-white':'bg-yellow-500 text-white'">
+                        P{{ n }}
                       </span>
-                      <div class="relative flex-1">
-                        <input :value="getAsigFormPlayer(n)" @input="onAsigPlayerInput(n, $event)"
+
+                      <!-- Chip de seleccionado -->
+                      <div v-if="getAsigFormPlayer(n)" class="flex-1 flex items-center gap-2 h-9 px-3 rounded-lg border"
+                        :class="n===1?'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800':n===2?'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800':'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'">
+                        <span class="font-mono text-[11px] font-black flex-shrink-0"
+                          :class="n===1?'text-orange-600 dark:text-orange-400':n===2?'text-amber-600 dark:text-amber-400':'text-yellow-700 dark:text-yellow-400'">
+                          {{ getAsigFormPlayer(n) }}
+                        </span>
+                        <span class="text-xs text-gray-700 dark:text-gray-300 truncate flex-1 font-medium">{{ resolvePlayerName(getAsigFormPlayer(n)) }}</span>
+                        <button @click="clearAsigPlayer(n)" class="flex-shrink-0 text-gray-400 hover:text-red-500 transition-colors ml-1">
+                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
+                          </svg>
+                        </button>
+                      </div>
+
+                      <!-- Input de búsqueda (cuando no hay selección) -->
+                      <div v-else class="relative flex-1">
+                        <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                        <input :value="playerSearch[n-1]" @input="onAsigPlayerSearch(n, $event)"
                           @focus="asigPlayerFocus=n; showAsigPlayerDrop=true"
                           @blur="hideAsigPlayerDrop"
-                          :placeholder="`Competidor ${n} (opcional)`"
-                          class="w-full h-9 border border-gray-300 dark:border-gray-600 rounded-lg px-3 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-400"/>
-                        <div v-if="showAsigPlayerDrop && asigPlayerFocus===n && filteredAsigPlayers.length > 0"
-                          class="absolute z-50 top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-xl max-h-44 overflow-y-auto">
-                          <button v-for="ti in filteredAsigPlayers.slice(0,25)" :key="ti.codigo"
+                          :placeholder="`Buscar competidor P${n}...`"
+                          class="w-full h-9 border border-gray-300 dark:border-gray-600 rounded-lg pl-8 pr-3 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-400"/>
+                        <div v-if="showAsigPlayerDrop && asigPlayerFocus===n"
+                          class="absolute z-50 top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-xl max-h-52 overflow-y-auto">
+                          <p v-if="filteredAsigPlayers.length===0" class="text-xs text-gray-400 text-center py-4">Sin resultados</p>
+                          <button v-for="ti in filteredAsigPlayers" :key="ti.codigo"
                             @mousedown.prevent="selectAsigPlayer(n, ti)"
-                            class="w-full text-left px-3 py-2 hover:bg-orange-50 dark:hover:bg-gray-700 border-b border-gray-50 dark:border-gray-700 last:border-0">
-                            <span class="text-xs font-bold text-orange-600 dark:text-orange-400 mr-2">{{ ti.codigo }}</span>
-                            <span class="text-sm text-gray-700 dark:text-gray-300">{{ ti.nombre }}</span>
+                            class="w-full text-left px-3 py-2.5 hover:bg-orange-50 dark:hover:bg-gray-700 border-b border-gray-50 dark:border-gray-700 last:border-0 flex items-center gap-2">
+                            <span class="font-mono text-[10px] font-black px-1.5 py-0.5 rounded flex-shrink-0"
+                              :class="n===1?'bg-orange-100 text-orange-600':n===2?'bg-amber-100 text-amber-600':'bg-yellow-100 text-yellow-700'">
+                              {{ ti.codigo }}
+                            </span>
+                            <span class="text-sm text-gray-800 dark:text-gray-200 truncate">{{ ti.nombre }}</span>
+                            <span v-if="ti.mercado" class="text-[10px] text-gray-400 ml-auto flex-shrink-0">{{ ti.mercado }}</span>
                           </button>
                         </div>
                       </div>
-                      <p class="text-xs text-orange-600 dark:text-orange-400 w-24 truncate font-medium">
-                        {{ resolvePlayerName(getAsigFormPlayer(n)) }}
-                      </p>
-                      <button v-if="getAsigFormPlayer(n)" @click="clearAsigPlayer(n)"
-                        class="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -258,14 +316,18 @@
       <!-- ══════════════════════ TAB: PROGRAMACIÓN ══════════════════════════════ -->
       <template v-if="activeTab === 'programacion'">
 
-        <!-- Stats chips -->
-        <div class="flex gap-2 flex-wrap">
-          <span v-for="chip in statsChips" :key="chip.label"
-            class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full"
-            :class="chip.cls">
-            <span class="w-1.5 h-1.5 rounded-full" :class="chip.dot"></span>
-            {{ chip.count }} {{ chip.label }}
-          </span>
+        <!-- Stats metric cards -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div v-for="chip in statsChips" :key="chip.label"
+            class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm px-5 py-4 flex items-center gap-4">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" :class="chip.iconBg">
+              <span class="w-3 h-3 rounded-full" :class="chip.dot"></span>
+            </div>
+            <div>
+              <p class="text-2xl font-black text-gray-900 dark:text-gray-100 leading-none">{{ chip.count }}</p>
+              <p class="text-xs font-semibold mt-0.5 capitalize" :class="chip.textCls">{{ chip.label }}</p>
+            </div>
+          </div>
         </div>
 
         <!-- Form crear programación -->
@@ -417,10 +479,12 @@
           <span class="text-xs text-gray-400 ml-auto">{{ filteredTareas.length }} resultado{{ filteredTareas.length!==1?'s':'' }}</span>
         </div>
 
-        <!-- Tabla programaciones -->
-        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-            <h2 class="font-bold text-gray-900 dark:text-gray-100">Programaciones</h2>
+        <!-- Lista de programaciones como tarjetas -->
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="font-bold text-gray-900 dark:text-gray-100 text-sm">
+              {{ filteredTareas.length }} programación{{ filteredTareas.length!==1?'es':'' }}
+            </h2>
             <div v-if="loadingTable" class="flex items-center gap-2 text-xs text-gray-400">
               <svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
@@ -429,86 +493,101 @@
               Actualizando...
             </div>
           </div>
-          <div class="overflow-x-auto">
-            <table class="min-w-full text-sm">
-              <thead>
-                <tr class="bg-gray-50 dark:bg-gray-700/50 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                  <th class="px-5 py-3 text-left">Producto</th>
-                  <th class="px-5 py-3 text-left">Competidores</th>
-                  <th class="px-5 py-3 text-left">Período</th>
-                  <th class="px-5 py-3 text-left">Cartera</th>
-                  <th class="px-5 py-3 text-left">Estado</th>
-                  <th class="px-5 py-3 text-center">Activo</th>
-                  <th class="px-5 py-3 text-center">Acciones</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-                <tr v-if="filteredTareas.length===0">
-                  <td colspan="7" class="px-5 py-14 text-center">
-                    <div class="flex flex-col items-center gap-2 text-gray-400 dark:text-gray-500">
-                      <svg class="w-10 h-10 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                      </svg>
-                      <p class="text-sm font-semibold">Sin programaciones</p>
-                      <p class="text-xs">{{ filterText||filterCartera||filterEstado?'Ajustá los filtros':'Creá la primera programación arriba' }}</p>
-                    </div>
-                  </td>
-                </tr>
-                <tr v-for="t in filteredTareas" :key="`${t.itemCode}-${t.fecha}`"
-                  class="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
-                  <td class="px-5 py-3.5">
-                    <p class="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400">{{ t.itemCode }}</p>
-                    <p class="text-xs text-gray-600 dark:text-gray-300 mt-0.5 max-w-[160px] truncate" :title="itemName(t)">{{ itemName(t)||'—' }}</p>
-                  </td>
-                  <td class="px-5 py-3.5">
-                    <div class="flex flex-wrap gap-1">
-                      <span v-for="(pl,i) in playersOf(t)" :key="i"
-                        class="text-xs px-2 py-0.5 rounded-full font-semibold"
-                        :class="i===0?'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300':i===1?'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300':'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300'">
-                        {{ pl }}
-                      </span>
-                      <span v-if="playersOf(t).length===0" class="text-xs text-gray-400 italic">—</span>
-                    </div>
-                  </td>
-                  <td class="px-5 py-3.5 whitespace-nowrap">
-                    <p class="text-xs font-medium text-gray-700 dark:text-gray-300">{{ t.fechaini }} → {{ t.fechafin }}</p>
-                    <p v-if="daysLeft(t)!==null" class="text-xs mt-0.5"
-                      :class="(daysLeft(t)??99)<=3?'text-red-500 font-semibold':'text-gray-400 dark:text-gray-500'">
-                      {{ daysLeft(t)===0?'Vence hoy':`${daysLeft(t)}d restantes` }}
-                    </p>
-                  </td>
-                  <td class="px-5 py-3.5">
-                    <span class="text-xs font-bold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-md">{{ t.cartera||'—' }}</span>
-                  </td>
-                  <td class="px-5 py-3.5">
-                    <span :class="estadoBadgeClass(t)" class="text-xs px-2.5 py-1 rounded-full font-bold">{{ estadoLabel(t) }}</span>
-                  </td>
-                  <td class="px-5 py-3.5 text-center">
-                    <button @click="toggleActivo(t)" :class="t.activo?'bg-indigo-600':'bg-gray-200 dark:bg-gray-600'"
-                      class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1">
-                      <span :class="t.activo?'translate-x-5':'translate-x-1'"
-                        class="inline-block h-3 w-3 transform rounded-full bg-white transition-transform shadow-sm"></span>
-                    </button>
-                  </td>
-                  <td class="px-5 py-3.5">
-                    <div class="flex items-center justify-center gap-1">
-                      <button @click="openEditProg(t)" title="Editar período"
-                        class="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                        </svg>
-                      </button>
-                      <button @click="confirmDeleteProg(t)" title="Eliminar"
-                        class="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                        </svg>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+
+          <!-- Empty state -->
+          <div v-if="filteredTareas.length===0" class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 py-16 flex flex-col items-center gap-3 text-gray-400 dark:text-gray-500">
+            <svg class="w-12 h-12 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            <p class="text-sm font-semibold">Sin programaciones</p>
+            <p class="text-xs">{{ filterText||filterCartera||filterEstado?'Ajustá los filtros':'Creá la primera programación arriba' }}</p>
+          </div>
+
+          <!-- Grid de tarjetas -->
+          <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div v-for="t in pagedTareas" :key="`${t.itemCode}-${t.fecha}`"
+              class="bg-white dark:bg-gray-800 rounded-xl border border-l-4 border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all group flex flex-col"
+              :class="estadoKey(t)==='vigente'?'border-l-green-500':estadoKey(t)==='pendiente'?'border-l-amber-400':estadoKey(t)==='vencido'?'border-l-red-500':'border-l-gray-300'">
+
+              <!-- Header: código + estado + toggle -->
+              <div class="px-4 pt-4 pb-3 flex items-start justify-between gap-2">
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-1.5 flex-wrap mb-1.5">
+                    <span class="font-mono text-[10px] font-black text-[#012F9D] dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded">{{ t.itemCode }}</span>
+                    <span :class="estadoBadgeClass(t)" class="text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wide">{{ estadoLabel(t) }}</span>
+                    <span v-if="daysLeft(t)!==null"
+                      class="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                      :class="(daysLeft(t)??99)<=3?'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400':'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'">
+                      {{ daysLeft(t)===0?'Vence hoy':`${daysLeft(t)}d` }}
+                    </span>
+                  </div>
+                  <p class="text-sm font-semibold text-gray-800 dark:text-gray-200 leading-tight line-clamp-2" :title="itemName(t)">{{ itemName(t)||'—' }}</p>
+                </div>
+                <button @click="toggleActivo(t)"
+                  :class="t.activo?'bg-[#012F9D]':'bg-gray-200 dark:bg-gray-600'"
+                  class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 mt-0.5 focus:outline-none">
+                  <span :class="t.activo?'translate-x-5':'translate-x-1'"
+                    class="inline-block h-3 w-3 transform rounded-full bg-white transition-transform shadow-sm"></span>
+                </button>
+              </div>
+
+              <!-- Período + cartera -->
+              <div class="px-4 pb-3 flex items-center gap-3 text-xs text-gray-400 dark:text-gray-500">
+                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                <span class="font-medium text-gray-600 dark:text-gray-300">{{ t.fechaini }}</span>
+                <span>→</span>
+                <span class="font-medium text-gray-600 dark:text-gray-300">{{ t.fechafin }}</span>
+                <span v-if="t.cartera" class="ml-auto font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-[10px]">C{{ t.cartera }}</span>
+              </div>
+
+              <!-- Competidores -->
+              <div class="px-4 pb-3 border-t border-gray-100 dark:border-gray-700 pt-3 space-y-1.5 flex-1">
+                <div v-for="(pl,i) in playersOf(t)" :key="i" class="flex items-center gap-2">
+                  <span class="w-6 h-5 rounded flex items-center justify-center text-[9px] font-black text-white flex-shrink-0"
+                    :class="i===0?'bg-orange-500':i===1?'bg-amber-500':'bg-yellow-600'">P{{ i+1 }}</span>
+                  <span class="text-xs font-medium text-gray-700 dark:text-gray-300 truncate" :title="pl">{{ pl }}</span>
+                </div>
+                <div v-if="playersOf(t).length===0" class="flex items-center gap-2">
+                  <span class="w-6 h-5 rounded border border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center text-[9px] text-gray-400">?</span>
+                  <span class="text-xs text-gray-400 italic">Sin competidores</span>
+                </div>
+              </div>
+
+              <!-- Acciones (hover) -->
+              <div class="px-4 py-2.5 border-t border-gray-100 dark:border-gray-700 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button @click="openEditProg(t)"
+                  class="flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-[#012F9D] hover:bg-blue-50 dark:hover:bg-blue-900/20 px-2.5 py-1.5 rounded-lg transition-colors">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                  </svg>
+                  Editar
+                </button>
+                <button @click="confirmDeleteProg(t)"
+                  class="flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 px-2.5 py-1.5 rounded-lg transition-colors">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                  </svg>
+                  Eliminar
+                </button>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- Paginador Programación -->
+        <div v-if="filteredTareas.length > PAGE_SIZE" class="flex items-center justify-between mt-4">
+          <p class="text-xs text-gray-400 dark:text-gray-500">
+            {{ (progPage-1)*PAGE_SIZE+1 }}–{{ Math.min(progPage*PAGE_SIZE, filteredTareas.length) }} de {{ filteredTareas.length }}
+          </p>
+          <div class="flex gap-1">
+            <button @click="progPage--" :disabled="progPage===1"
+              class="px-3 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">‹ Ant.</button>
+            <span class="px-3 py-1.5 text-xs rounded-lg bg-indigo-600 text-white font-bold">{{ progPage }} / {{ progPages }}</span>
+            <button @click="progPage++" :disabled="progPage===progPages"
+              class="px-3 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">Sig. ›</button>
           </div>
         </div>
 
@@ -585,88 +664,290 @@
       <!-- ══════════════════════ TAB: CATÁLOGO ══════════════════════════════════ -->
       <template v-if="activeTab === 'catalogo'">
 
+        <!-- ── Formulario ──────────────────────────────────────────────────────── -->
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div class="bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-5">
-            <h2 class="text-white font-bold text-lg">{{ editingItem?'Editar competidor':'Nuevo competidor'  }}</h2>
-            <p class="text-orange-100 text-sm mt-0.5">Mantené actualizado el catálogo de marcas competidoras</p>
-          </div>
-          <div class="p-6">
-            <div class="grid grid-cols-2 gap-4 sm:grid-cols-4 mb-5">
-              <div v-for="f in catFields" :key="f.key">
-                <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">{{ f.label }}<span v-if="f.req" class="text-red-500 ml-0.5">*</span></label>
-                <input :value="getCatField(f.key)" @input="onCatFieldInput(f.key, $event)" :type="f.type||'text'" :placeholder="f.ph||''" :disabled="f.key==='codigo'&&!!editingItem"
-                  class="w-full h-9 border border-gray-300 dark:border-gray-600 rounded-lg px-3 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-400 disabled:opacity-50"/>
+
+          <!-- Header con gradiente indigo -->
+          <div class="relative overflow-hidden bg-gradient-to-r from-indigo-600 to-blue-500 px-6 py-5">
+            <div class="absolute -right-6 -top-6 w-32 h-32 rounded-full bg-white/10 pointer-events-none"></div>
+            <div class="relative flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+              </div>
+              <div>
+                <h2 class="text-white font-extrabold text-base leading-tight">{{ editingItem ? 'Editar competidor' : 'Nuevo competidor' }}</h2>
+                <p class="text-indigo-100 text-xs mt-0.5">Código único · Nombre · Clasificación de producto</p>
+              </div>
+              <div v-if="editingItem" class="ml-auto">
+                <span class="font-mono text-xs font-black text-white bg-white/20 px-3 py-1.5 rounded-lg">{{ editingItem.codigo }}</span>
               </div>
             </div>
-            <p v-if="itemFormError" class="text-sm text-red-500 mb-3">{{ itemFormError }}</p>
-            <div class="flex gap-2 justify-end border-t border-gray-100 dark:border-gray-700 pt-4">
-              <button v-if="editingItem" @click="cancelEditItem" class="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Cancelar</button>
-              <button @click="submitItem" :disabled="savingItem"
-                class="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-sm font-bold px-5 py-2 rounded-lg transition-colors">
-                {{ savingItem?'Guardando...':editingItem?'Actualizar':'Agregar competidor' }}
-              </button>
+          </div>
+
+          <div class="p-6 space-y-5">
+            <!-- Sección 1: identidad (campos obligatorios) -->
+            <div>
+              <p class="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                <span class="w-4 h-px bg-gray-300 dark:bg-gray-600 inline-block"></span>
+                Identidad
+                <span class="w-4 h-px bg-gray-300 dark:bg-gray-600 inline-block"></span>
+              </p>
+              <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                <!-- Código -->
+                <div>
+                  <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
+                    Código <span class="text-red-500">*</span>
+                  </label>
+                  <div class="relative">
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/>
+                      </svg>
+                    </span>
+                    <input :value="getCatField('codigo')" @input="onCatFieldInput('codigo', $event)"
+                      placeholder="Ej: ABC01"
+                      class="w-full h-10 border border-gray-200 dark:border-gray-600 rounded-xl pl-9 pr-3 text-sm font-mono font-bold bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400"/>
+                  </div>
+                </div>
+                <!-- ID Producto -->
+                <div>
+                  <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">ID Producto</label>
+                  <input :value="getCatField('idProducto')" @input="onCatFieldInput('idProducto', $event)"
+                    placeholder="Ej: A00001"
+                    class="w-full h-10 border border-gray-200 dark:border-gray-600 rounded-xl px-3 text-sm font-mono bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400"/>
+                </div>
+                <!-- Nombre -->
+                <div class="sm:col-span-2">
+                  <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
+                    Nombre <span class="text-red-500">*</span>
+                  </label>
+                  <input :value="getCatField('nombre')" @input="onCatFieldInput('nombre', $event)"
+                    placeholder="Nombre del producto competidor"
+                    class="w-full h-10 border border-gray-200 dark:border-gray-600 rounded-xl px-3 text-sm font-semibold bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400"/>
+                </div>
+              </div>
+            </div>
+
+            <!-- Sección 2: clasificación (opcionales) -->
+            <div>
+              <p class="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                <span class="w-4 h-px bg-gray-300 dark:bg-gray-600 inline-block"></span>
+                Clasificación
+                <span class="text-gray-300 dark:text-gray-600 font-normal normal-case tracking-normal">(opcional)</span>
+                <span class="w-4 h-px bg-gray-300 dark:bg-gray-600 inline-block"></span>
+              </p>
+              <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                <div v-for="f in catFields.filter(f => ['rubro','grupo','subgrupo','clase','subclase'].includes(f.key))" :key="f.key">
+                  <label class="block text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1.5">{{ f.label }}</label>
+                  <input :value="getCatField(f.key)" @input="onCatFieldInput(f.key, $event)" :placeholder="f.ph||''"
+                    class="w-full h-9 border border-gray-200 dark:border-gray-600 rounded-lg px-3 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-300"/>
+                </div>
+              </div>
+            </div>
+
+            <!-- Sección 3: detalles (mercado, estado, peso) -->
+            <div>
+              <p class="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                <span class="w-4 h-px bg-gray-300 dark:bg-gray-600 inline-block"></span>
+                Detalles
+                <span class="text-gray-300 dark:text-gray-600 font-normal normal-case tracking-normal">(opcional)</span>
+                <span class="w-4 h-px bg-gray-300 dark:bg-gray-600 inline-block"></span>
+              </p>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label class="block text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1.5">Mercado</label>
+                  <input :value="getCatField('mercado')" @input="onCatFieldInput('mercado', $event)" placeholder="Ej: Nacional"
+                    class="w-full h-9 border border-gray-200 dark:border-gray-600 rounded-lg px-3 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-300"/>
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1.5">Estado</label>
+                  <input :value="getCatField('estado')" @input="onCatFieldInput('estado', $event)" placeholder="Activo / Inactivo"
+                    class="w-full h-9 border border-gray-200 dark:border-gray-600 rounded-lg px-3 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-300"/>
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1.5">Peso Neto (kg)</label>
+                  <input :value="getCatField('pesoNeto')" @input="onCatFieldInput('pesoNeto', $event)" placeholder="0.00" type="number" step="0.01"
+                    class="w-full h-9 border border-gray-200 dark:border-gray-600 rounded-lg px-3 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-300"/>
+                </div>
+              </div>
+            </div>
+
+            <!-- Error + acciones -->
+            <div>
+              <p v-if="itemFormError" class="flex items-center gap-1.5 text-sm text-red-500 mb-3">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                {{ itemFormError }}
+              </p>
+              <div class="flex gap-2 justify-end pt-4 border-t border-gray-100 dark:border-gray-700">
+                <button v-if="editingItem" @click="cancelEditItem"
+                  class="px-4 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 font-semibold transition-colors">
+                  Cancelar
+                </button>
+                <button @click="submitItem" :disabled="savingItem"
+                  class="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-blue-500 hover:from-indigo-700 hover:to-blue-600 disabled:opacity-50 text-white text-sm font-bold px-6 py-2 rounded-xl transition-all shadow-sm">
+                  <svg v-if="savingItem" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                  </svg>
+                  <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                  </svg>
+                  {{ savingItem ? 'Guardando...' : editingItem ? 'Actualizar competidor' : 'Agregar competidor' }}
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-            <h2 class="font-bold text-gray-900 dark:text-gray-100">Competidores registrados</h2>
-            <span class="text-xs font-bold bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 px-2.5 py-1 rounded-full">{{ tradeItems.length }}</span>
+        <!-- ── Lista de competidores ────────────────────────────────────────────── -->
+        <div>
+          <!-- Header de sección -->
+          <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
+            <div class="flex items-center gap-3">
+              <h2 class="font-extrabold text-gray-900 dark:text-gray-100">Competidores registrados</h2>
+              <span class="text-xs font-black bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2.5 py-1 rounded-full">{{ filteredCat.length }}</span>
+            </div>
+            <!-- Buscador catálogo -->
+            <div class="relative">
+              <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
+              <input v-model="catFilter" placeholder="Buscar competidor..." class="h-9 pl-9 pr-3 w-56 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400"/>
+            </div>
           </div>
-          <div class="overflow-x-auto">
-            <table class="min-w-full text-sm">
-              <thead>
-                <tr class="bg-gray-50 dark:bg-gray-700/50 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                  <th class="px-5 py-3 text-left">Código</th>
-                  <th class="px-5 py-3 text-left">Nombre</th>
-                  <th class="px-5 py-3 text-left">Rubro</th>
-                  <th class="px-5 py-3 text-left">Grupo</th>
-                  <th class="px-5 py-3 text-left">Subgrupo</th>
-                  <th class="px-5 py-3 text-left">Clase</th>
-                  <th class="px-5 py-3 text-center">Acciones</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-                <tr v-if="tradeItems.length===0">
-                  <td colspan="7" class="px-5 py-10 text-center text-gray-400 text-sm">Sin competidores registrados</td>
-                </tr>
-                <tr v-for="ti in tradeItems" :key="ti.codigo" class="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
-                  <td class="px-5 py-3 font-mono text-xs font-bold text-orange-600 dark:text-orange-400">{{ ti.codigo }}</td>
-                  <td class="px-5 py-3 font-semibold text-gray-800 dark:text-gray-200">{{ ti.nombre }}</td>
-                  <td class="px-5 py-3 text-gray-500 dark:text-gray-400 text-xs">{{ ti.rubro||'—' }}</td>
-                  <td class="px-5 py-3 text-gray-500 dark:text-gray-400 text-xs">{{ ti.grupo||'—' }}</td>
-                  <td class="px-5 py-3 text-gray-500 dark:text-gray-400 text-xs">{{ ti.subgrupo||'—' }}</td>
-                  <td class="px-5 py-3 text-gray-500 dark:text-gray-400 text-xs">{{ ti.clase||'—' }}</td>
-                  <td class="px-5 py-3">
-                    <div class="flex items-center justify-center gap-1">
-                      <button @click="editItem(ti)" class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                        </svg>
-                      </button>
-                      <button @click="confirmDeleteItem(ti)" class="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                        </svg>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+
+          <!-- Empty state -->
+          <div v-if="filteredCat.length===0"
+            class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 py-16 flex flex-col items-center gap-3 text-gray-400 dark:text-gray-500">
+            <div class="w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center">
+              <svg class="w-8 h-8 text-indigo-300 dark:text-indigo-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+              </svg>
+            </div>
+            <p class="text-sm font-semibold">Sin competidores registrados</p>
+            <p class="text-xs">Agregá el primer competidor usando el formulario de arriba</p>
+          </div>
+
+          <!-- Grid de tarjetas -->
+          <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div v-for="ti in pagedCat" :key="ti.id"
+              class="bg-white dark:bg-gray-800 rounded-xl border border-l-4 border-l-indigo-500 border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all group">
+
+              <!-- Header de tarjeta -->
+              <div class="px-4 pt-4 pb-3 flex items-start justify-between gap-2">
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+                    <span class="font-mono text-[10px] font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded">{{ ti.codigo }}</span>
+                    <!-- Estado chip -->
+                    <span v-if="ti.estado"
+                      :class="String(ti.estado).toLowerCase().includes('activ') ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'"
+                      class="text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      {{ ti.estado }}
+                    </span>
+                    <!-- Mercado chip -->
+                    <span v-if="ti.mercado" class="text-[10px] font-semibold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">
+                      {{ ti.mercado }}
+                    </span>
+                  </div>
+                  <p class="text-sm font-bold text-gray-800 dark:text-gray-200 leading-tight">{{ ti.nombre }}</p>
+                  <p v-if="ti.idProducto" class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 font-mono">ID: {{ ti.idProducto }}</p>
+                </div>
+                <div class="flex gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button @click="editItem(ti)" title="Editar"
+                    class="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                  </button>
+                  <button @click="confirmDeleteItem(ti)" title="Eliminar"
+                    class="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Clasificación + peso -->
+              <div class="px-4 pb-4 border-t border-gray-100 dark:border-gray-700 pt-3 space-y-2">
+                <!-- Breadcrumb rubro › grupo › subgrupo -->
+                <div v-if="ti.rubro||ti.grupo||ti.subgrupo" class="flex items-center gap-1 flex-wrap text-xs text-gray-500 dark:text-gray-400">
+                  <span v-if="ti.rubro" class="font-semibold text-indigo-600 dark:text-indigo-400">{{ ti.rubro }}</span>
+                  <span v-if="ti.rubro && ti.grupo" class="text-gray-300 dark:text-gray-600">›</span>
+                  <span v-if="ti.grupo">{{ ti.grupo }}</span>
+                  <span v-if="ti.grupo && ti.subgrupo" class="text-gray-300 dark:text-gray-600">›</span>
+                  <span v-if="ti.subgrupo">{{ ti.subgrupo }}</span>
+                </div>
+                <div v-else class="text-xs text-gray-300 dark:text-gray-600 italic">Sin clasificación</div>
+
+                <!-- Chips clase + subclase + peso neto -->
+                <div class="flex gap-1.5 flex-wrap items-center">
+                  <span v-if="ti.clase"
+                    class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800">
+                    {{ ti.clase }}
+                  </span>
+                  <span v-if="ti.subclase"
+                    class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border border-blue-100 dark:border-blue-800">
+                    {{ ti.subclase }}
+                  </span>
+                  <span v-if="ti.pesoNeto != null" class="text-[10px] text-gray-400 dark:text-gray-500 ml-auto font-mono">
+                    {{ ti.pesoNeto }} kg
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Paginador Catálogo -->
+          <div v-if="filteredCat.length > PAGE_SIZE" class="flex items-center justify-between mt-4">
+            <p class="text-xs text-gray-400 dark:text-gray-500">
+              {{ (catPage-1)*PAGE_SIZE+1 }}–{{ Math.min(catPage*PAGE_SIZE, filteredCat.length) }} de {{ filteredCat.length }}
+            </p>
+            <div class="flex gap-1">
+              <button @click="catPage--" :disabled="catPage===1"
+                class="px-3 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">‹ Ant.</button>
+              <span class="px-3 py-1.5 text-xs rounded-lg bg-indigo-600 text-white font-bold">{{ catPage }} / {{ catPages }}</span>
+              <button @click="catPage++" :disabled="catPage===catPages"
+                class="px-3 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">Sig. ›</button>
+            </div>
           </div>
         </div>
 
+        <!-- Modal eliminar competidor -->
         <Teleport to="body">
           <div v-if="deleteItemTarget" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
             <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 max-w-sm w-full">
-              <h3 class="font-bold text-gray-900 dark:text-gray-100 text-lg mb-2">Eliminar competidor</h3>
-              <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">¿Eliminar <strong>{{ deleteItemTarget.nombre }}</strong> ({{ deleteItemTarget.codigo }})?</p>
+              <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center flex-shrink-0">
+                  <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="font-bold text-gray-900 dark:text-gray-100">Eliminar competidor</h3>
+                  <p class="text-xs text-gray-500 mt-0.5">Esta acción no se puede deshacer</p>
+                </div>
+              </div>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mb-5">
+                ¿Eliminar <strong class="text-gray-900 dark:text-gray-100">{{ deleteItemTarget.nombre }}</strong>
+                <span class="font-mono text-xs text-indigo-500 ml-1">({{ deleteItemTarget.codigo }})</span>?
+              </p>
               <div class="flex gap-3 justify-end">
-                <button @click="deleteItemTarget=null" class="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Cancelar</button>
-                <button @click="doDeleteItem" :disabled="deletingItem" class="px-4 py-2 text-sm bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold rounded-lg">
-                  {{ deletingItem?'Eliminando...':'Eliminar' }}
+                <button @click="deleteItemTarget=null"
+                  class="px-4 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 font-semibold">
+                  Cancelar
+                </button>
+                <button @click="doDeleteItem" :disabled="deletingItem"
+                  class="px-4 py-2 text-sm bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold rounded-xl flex items-center gap-2">
+                  <svg v-if="deletingItem" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                  </svg>
+                  {{ deletingItem ? 'Eliminando...' : 'Eliminar' }}
                 </button>
               </div>
             </div>
@@ -680,7 +961,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import MainLayout from '@/components/layouts/MainLayout.vue'
 import svc, { type ProductoSAP, type TradeItem, type PlayerSap, type PlayersTask } from '@/services/categoria-relevamiento.service'
 
@@ -729,6 +1010,7 @@ const deletingAsig     = ref(false)
 const showAsigDropdown = ref(false)
 const showAsigPlayerDrop = ref(false)
 const asigPlayerFocus  = ref(0)
+const playerSearch     = ref<[string, string, string]>(['', '', ''])
 const asigProductSearch = ref('')
 
 const asigForm = ref<PlayerSap>({
@@ -752,11 +1034,12 @@ const filteredAsigProductos = computed(() => {
 })
 
 const filteredAsigPlayers = computed(() => {
-  const val = (getAsigFormPlayer(asigPlayerFocus.value) ?? '').toLowerCase()
-  if (!val) return tradeItems.value
+  const idx = asigPlayerFocus.value - 1
+  const val = (idx >= 0 ? playerSearch.value[idx as 0|1|2] : '').toLowerCase()
+  if (!val) return tradeItems.value.slice(0, 50)
   return tradeItems.value.filter(t =>
     t.codigo.toLowerCase().includes(val) || t.nombre.toLowerCase().includes(val)
-  )
+  ).slice(0, 50)
 })
 
 function getAsigFormPlayer(n: number): string {
@@ -769,14 +1052,18 @@ function setAsigFormPlayer(n: number, val: string) {
   else asigForm.value.players3 = val || null
 }
 
-function onAsigPlayerInput(n: number, e: Event) {
-  setAsigFormPlayer(n, (e.target as HTMLInputElement).value)
+function onAsigPlayerSearch(n: number, e: Event) {
+  playerSearch.value[n-1 as 0|1|2] = (e.target as HTMLInputElement).value
 }
 
-function clearAsigPlayer(n: number) { setAsigFormPlayer(n, '') }
+function clearAsigPlayer(n: number) {
+  setAsigFormPlayer(n, '')
+  playerSearch.value[n-1 as 0|1|2] = ''
+}
 
 function selectAsigPlayer(n: number, ti: TradeItem) {
   setAsigFormPlayer(n, ti.codigo)
+  playerSearch.value[n-1 as 0|1|2] = ''
   showAsigPlayerDrop.value = false
 }
 
@@ -794,6 +1081,7 @@ function openAsigModal(a: PlayerSap | null) {
   asigEditing.value       = a
   asigError.value         = ''
   asigProductSearch.value = ''
+  playerSearch.value      = ['', '', '']
   asigForm.value = a
     ? { ...a }
     : { itemCode: '', itemName: '', players1: null, players2: null, players3: null }
@@ -926,11 +1214,40 @@ const filteredTareas = computed(() =>
 
 function clearFilters() { filterText.value = ''; filterCartera.value = ''; filterEstado.value = '' }
 
+// ── Paginación ────────────────────────────────────────────────────────────────
+const PAGE_SIZE = 12
+
+const asigPage = ref(1)
+const progPage = ref(1)
+const catPage  = ref(1)
+const catFilter = ref('')
+
+const filteredCat = computed(() => {
+  const q = catFilter.value.toLowerCase()
+  if (!q) return tradeItems.value
+  return tradeItems.value.filter(t =>
+    t.codigo.toLowerCase().includes(q) || t.nombre.toLowerCase().includes(q) ||
+    (t.rubro ?? '').toLowerCase().includes(q) || (t.mercado ?? '').toLowerCase().includes(q)
+  )
+})
+
+watch(filteredAsig,  () => { asigPage.value = 1 })
+watch(filteredTareas,() => { progPage.value = 1 })
+watch(filteredCat,   () => { catPage.value  = 1 })
+
+const pagedAsig   = computed(() => filteredAsig.value.slice((asigPage.value-1)*PAGE_SIZE, asigPage.value*PAGE_SIZE))
+const pagedTareas = computed(() => filteredTareas.value.slice((progPage.value-1)*PAGE_SIZE, progPage.value*PAGE_SIZE))
+const pagedCat    = computed(() => filteredCat.value.slice((catPage.value-1)*PAGE_SIZE, catPage.value*PAGE_SIZE))
+
+const asigPages = computed(() => Math.max(1, Math.ceil(filteredAsig.value.length / PAGE_SIZE)))
+const progPages = computed(() => Math.max(1, Math.ceil(filteredTareas.value.length / PAGE_SIZE)))
+const catPages  = computed(() => Math.max(1, Math.ceil(filteredCat.value.length / PAGE_SIZE)))
+
 const statsChips = computed(() => [
-  { label: 'total',     count: tareas.value.length,                                    cls: 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300',             dot: 'bg-gray-400' },
-  { label: 'vigentes',  count: tareas.value.filter(t => estadoKey(t)==='vigente').length,  cls: 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300',      dot: 'bg-green-500' },
-  { label: 'pendientes',count: tareas.value.filter(t => estadoKey(t)==='pendiente').length,cls: 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300',  dot: 'bg-yellow-500' },
-  { label: 'vencidas',  count: tareas.value.filter(t => estadoKey(t)==='vencido').length,  cls: 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300',             dot: 'bg-red-400' },
+  { label: 'total',      count: tareas.value.length,                                          cls: 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300',            dot: 'bg-gray-400',  iconBg: 'bg-gray-100 dark:bg-gray-700',            textCls: 'text-gray-500 dark:text-gray-400' },
+  { label: 'vigentes',   count: tareas.value.filter(t => estadoKey(t)==='vigente').length,    cls: 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300',     dot: 'bg-green-500', iconBg: 'bg-green-100 dark:bg-green-900/40',       textCls: 'text-green-600 dark:text-green-400' },
+  { label: 'pendientes', count: tareas.value.filter(t => estadoKey(t)==='pendiente').length,  cls: 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300', dot: 'bg-amber-400', iconBg: 'bg-amber-100 dark:bg-amber-900/40',       textCls: 'text-amber-600 dark:text-amber-400' },
+  { label: 'vencidas',   count: tareas.value.filter(t => estadoKey(t)==='vencido').length,    cls: 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300',            dot: 'bg-red-500',   iconBg: 'bg-red-100 dark:bg-red-900/40',           textCls: 'text-red-600 dark:text-red-400' },
 ])
 
 function estadoLabel(t: PlayersTask): string {
@@ -1000,25 +1317,35 @@ async function doDeleteProg() {
 // ══════════════════════════ CATÁLOGO ══════════════════════════════════════════
 
 const catFields: { key: string; label: string; ph: string; req?: boolean; type?: string }[] = [
-  { key: 'codigo',   label: 'Código',    ph: 'Ej: ABC',     req: true },
-  { key: 'nombre',   label: 'Nombre',    ph: 'Nombre',      req: true },
-  { key: 'rubro',    label: 'Rubro',     ph: 'Ej: Bebidas' },
-  { key: 'grupo',    label: 'Grupo',     ph: 'Ej: Cervezas' },
-  { key: 'subgrupo', label: 'Subgrupo',  ph: '' },
-  { key: 'clase',    label: 'Clase',     ph: '' },
-  { key: 'subclase', label: 'Subclase',  ph: '' },
+  { key: 'codigo',     label: 'Código',      ph: 'Ej: ABC',       req: true },
+  { key: 'nombre',     label: 'Nombre',      ph: 'Nombre',        req: true },
+  { key: 'idProducto', label: 'ID Producto', ph: 'Ej: A00001' },
+  { key: 'rubro',      label: 'Rubro',       ph: 'Ej: Bebidas' },
+  { key: 'grupo',      label: 'Grupo',       ph: 'Ej: Cervezas' },
+  { key: 'subgrupo',   label: 'Subgrupo',    ph: '' },
+  { key: 'clase',      label: 'Clase',       ph: '' },
+  { key: 'subclase',   label: 'Subclase',    ph: '' },
+  { key: 'mercado',    label: 'Mercado',     ph: 'Ej: Nacional' },
+  { key: 'estado',     label: 'Estado',      ph: 'Activo / Inactivo' },
+  { key: 'pesoNeto',   label: 'Peso Neto',   ph: '0.00', type: 'number' },
 ]
+
+const emptyItemForm = (): TradeItem => ({
+  idProducto: null, codigo: '', nombre: '',
+  rubro: null, grupo: null, subgrupo: null, clase: null, subclase: null,
+  mercado: null, estado: null, pesoNeto: null,
+})
 
 const editingItem      = ref<TradeItem | null>(null)
 const savingItem       = ref(false)
 const itemFormError    = ref('')
 const deleteItemTarget = ref<TradeItem | null>(null)
 const deletingItem     = ref(false)
-const itemForm = ref<TradeItem>({ codigo: '', nombre: '', rubro: null, grupo: null, subgrupo: null, clase: null, subclase: null })
+const itemForm = ref<TradeItem>(emptyItemForm())
 
 function editItem(ti: TradeItem) { editingItem.value = ti; itemForm.value = { ...ti } }
-function cancelEditItem() { editingItem.value = null; itemForm.value = { codigo: '', nombre: '', rubro: null, grupo: null, subgrupo: null, clase: null, subclase: null } }
-function getCatField(key: string): string { return (itemForm.value as any)[key] ?? '' }
+function cancelEditItem() { editingItem.value = null; itemForm.value = emptyItemForm() }
+function getCatField(key: string): string { return String((itemForm.value as any)[key] ?? '') }
 function onCatFieldInput(key: string, e: Event) { (itemForm.value as any)[key] = (e.target as HTMLInputElement).value }
 
 async function submitItem() {
@@ -1027,7 +1354,7 @@ async function submitItem() {
   if (!itemForm.value.nombre.trim()) { itemFormError.value = 'El nombre es obligatorio'; return }
   savingItem.value = true
   try {
-    if (editingItem.value) await svc.updateTradeItem(itemForm.value.codigo, itemForm.value)
+    if (editingItem.value) await svc.updateTradeItem(editingItem.value.id!, itemForm.value)
     else await svc.createTradeItem(itemForm.value)
     tradeItems.value = await svc.getTradeItems()
     cancelEditItem()
@@ -1041,7 +1368,7 @@ async function doDeleteItem() {
   if (!deleteItemTarget.value) return
   deletingItem.value = true
   try {
-    await svc.deleteTradeItem(deleteItemTarget.value.codigo)
+    await svc.deleteTradeItem(deleteItemTarget.value.id!)
     deleteItemTarget.value = null
     tradeItems.value = await svc.getTradeItems()
   } finally { deletingItem.value = false }

@@ -2,6 +2,8 @@ import { Injectable, Inject } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 
 export interface TradeItem {
+  id?: number;
+  idProducto: string | null;
   codigo: string;
   nombre: string;
   rubro: string | null;
@@ -9,6 +11,9 @@ export interface TradeItem {
   subgrupo: string | null;
   clase: string | null;
   subclase: string | null;
+  mercado: string | null;
+  estado: string | null;
+  pesoNeto: number | null;
 }
 
 export interface PlayerSap {
@@ -58,18 +63,23 @@ export class CategoriaRelevamientoService {
   // Catálogo de competidores
   async getTradeItems(): Promise<TradeItem[]> {
     const rows = await this.db.query(`
-      SELECT "codigo","Nombre","rubro","grupo","subgrupo","clase","subclase"
-      FROM "MINOILDES"."TradeItemsPlayers"
+      SELECT "Id","IdProducto","codigo","Nombre","rubro","grupo","subgrupo","clase","subclase","mercado","Estado","PesoNeto"
+      FROM "MINOILDES"."TradePlayer"
       ORDER BY "Nombre" ASC
     `);
     return rows.map((r: any) => ({
-      codigo:   String(r.codigo   ?? r.CODIGO   ?? ''),
-      nombre:   String(r.Nombre   ?? r.NOMBRE   ?? ''),
-      rubro:    r.rubro    ?? r.RUBRO    ?? null,
-      grupo:    r.grupo    ?? r.GRUPO    ?? null,
-      subgrupo: r.subgrupo ?? r.SUBGRUPO ?? null,
-      clase:    r.clase    ?? r.CLASE    ?? null,
-      subclase: r.subclase ?? r.SUBCLASE ?? null,
+      id:         Number(r.Id         ?? r.ID         ?? 0),
+      idProducto: r.IdProducto ?? r.IDPRODUCTO ?? null,
+      codigo:     String(r.codigo     ?? r.CODIGO     ?? ''),
+      nombre:     String(r.Nombre     ?? r.NOMBRE     ?? ''),
+      rubro:      r.rubro     ?? r.RUBRO     ?? null,
+      grupo:      r.grupo     ?? r.GRUPO     ?? null,
+      subgrupo:   r.subgrupo  ?? r.SUBGRUPO  ?? null,
+      clase:      r.clase     ?? r.CLASE     ?? null,
+      subclase:   r.subclase  ?? r.SUBCLASE  ?? null,
+      mercado:    r.mercado   ?? r.MERCADO   ?? null,
+      estado:     r.Estado    ?? r.ESTADO    ?? null,
+      pesoNeto:   r.PesoNeto  != null ? Number(r.PesoNeto ?? r.PESONETO) : null,
     }));
   }
 
@@ -83,9 +93,9 @@ export class CategoriaRelevamientoService {
              ti3."Nombre" AS "NombrePlayer3"
       FROM "MINOILDES"."TradePlayerSap" p
       LEFT JOIN "BD_MINOIL_PROD"."OITM" o ON o."ItemCode" = p."ItemCode"
-      LEFT JOIN "MINOILDES"."TradeItemsPlayers" ti1 ON ti1."codigo" = p."Players1"
-      LEFT JOIN "MINOILDES"."TradeItemsPlayers" ti2 ON ti2."codigo" = p."Players2"
-      LEFT JOIN "MINOILDES"."TradeItemsPlayers" ti3 ON ti3."codigo" = p."Players3"
+      LEFT JOIN "MINOILDES"."TradePlayer" ti1 ON ti1."codigo" = p."Players1"
+      LEFT JOIN "MINOILDES"."TradePlayer" ti2 ON ti2."codigo" = p."Players2"
+      LEFT JOIN "MINOILDES"."TradePlayer" ti3 ON ti3."codigo" = p."Players3"
       ORDER BY o."ItemName" ASC
     `);
     return rows.map((r: any) => ({
@@ -166,9 +176,9 @@ export class CategoriaRelevamientoService {
       FROM "MINOILDES"."TradePlayersTask" t
       LEFT JOIN "BD_MINOIL_PROD"."OITM" o ON o."ItemCode" = t."ItemCode"
       LEFT JOIN "MINOILDES"."TradePlayerSap" p ON p."ItemCode" = t."ItemCode"
-      LEFT JOIN "MINOILDES"."TradeItemsPlayers" ti1 ON ti1."codigo" = p."Players1"
-      LEFT JOIN "MINOILDES"."TradeItemsPlayers" ti2 ON ti2."codigo" = p."Players2"
-      LEFT JOIN "MINOILDES"."TradeItemsPlayers" ti3 ON ti3."codigo" = p."Players3"
+      LEFT JOIN "MINOILDES"."TradePlayer" ti1 ON ti1."codigo" = p."Players1"
+      LEFT JOIN "MINOILDES"."TradePlayer" ti2 ON ti2."codigo" = p."Players2"
+      LEFT JOIN "MINOILDES"."TradePlayer" ti3 ON ti3."codigo" = p."Players3"
       ORDER BY t."fecha" DESC
     `);
     return rows.map((r: any) => ({
@@ -202,9 +212,9 @@ export class CategoriaRelevamientoService {
       FROM "MINOILDES"."TradePlayersTask" t
       LEFT JOIN "BD_MINOIL_PROD"."OITM" o ON o."ItemCode" = t."ItemCode"
       LEFT JOIN "MINOILDES"."TradePlayerSap" p ON p."ItemCode" = t."ItemCode"
-      LEFT JOIN "MINOILDES"."TradeItemsPlayers" ti1 ON ti1."codigo" = p."Players1"
-      LEFT JOIN "MINOILDES"."TradeItemsPlayers" ti2 ON ti2."codigo" = p."Players2"
-      LEFT JOIN "MINOILDES"."TradeItemsPlayers" ti3 ON ti3."codigo" = p."Players3"
+      LEFT JOIN "MINOILDES"."TradePlayer" ti1 ON ti1."codigo" = p."Players1"
+      LEFT JOIN "MINOILDES"."TradePlayer" ti2 ON ti2."codigo" = p."Players2"
+      LEFT JOIN "MINOILDES"."TradePlayer" ti3 ON ti3."codigo" = p."Players3"
       WHERE t."activo" = 1
         ${filtroCartera}
       ORDER BY o."ItemName" ASC
@@ -279,10 +289,11 @@ export class CategoriaRelevamientoService {
   // Catálogo de competidores
   async createTradeItem(data: TradeItem): Promise<void> {
     await this.db.execute(
-      `INSERT INTO "MINOILDES"."TradeItemsPlayers"
-       ("codigo","Nombre","rubro","grupo","subgrupo","clase","subclase")
-       VALUES (?,?,?,?,?,?,?)`,
+      `INSERT INTO "MINOILDES"."TradePlayer"
+       ("IdProducto","codigo","Nombre","rubro","grupo","subgrupo","clase","subclase","mercado","Estado","PesoNeto")
+       VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
       [
+        data.idProducto ? String(data.idProducto) : null,
         String(data.codigo),
         String(data.nombre),
         data.rubro    ? String(data.rubro)    : null,
@@ -290,31 +301,39 @@ export class CategoriaRelevamientoService {
         data.subgrupo ? String(data.subgrupo) : null,
         data.clase    ? String(data.clase)    : null,
         data.subclase ? String(data.subclase) : null,
+        data.mercado  ? String(data.mercado)  : null,
+        data.estado   ? String(data.estado)   : null,
+        data.pesoNeto != null ? Number(data.pesoNeto) : null,
       ],
     );
   }
 
-  async updateTradeItem(codigo: string, data: Partial<TradeItem>): Promise<void> {
+  async updateTradeItem(id: number, data: Partial<TradeItem>): Promise<void> {
     await this.db.execute(
-      `UPDATE "MINOILDES"."TradeItemsPlayers"
-       SET "Nombre"=?, "rubro"=?, "grupo"=?, "subgrupo"=?, "clase"=?, "subclase"=?
-       WHERE "codigo"=?`,
+      `UPDATE "MINOILDES"."TradePlayer"
+       SET "IdProducto"=?, "codigo"=?, "Nombre"=?, "rubro"=?, "grupo"=?, "subgrupo"=?, "clase"=?, "subclase"=?, "mercado"=?, "Estado"=?, "PesoNeto"=?
+       WHERE "Id"=?`,
       [
+        data.idProducto ? String(data.idProducto) : null,
+        String(data.codigo ?? ''),
         String(data.nombre ?? ''),
         data.rubro    ? String(data.rubro)    : null,
         data.grupo    ? String(data.grupo)    : null,
         data.subgrupo ? String(data.subgrupo) : null,
         data.clase    ? String(data.clase)    : null,
         data.subclase ? String(data.subclase) : null,
-        String(codigo),
+        data.mercado  ? String(data.mercado)  : null,
+        data.estado   ? String(data.estado)   : null,
+        data.pesoNeto != null ? Number(data.pesoNeto) : null,
+        Number(id),
       ],
     );
   }
 
-  async deleteTradeItem(codigo: string): Promise<void> {
+  async deleteTradeItem(id: number): Promise<void> {
     await this.db.execute(
-      `DELETE FROM "MINOILDES"."TradeItemsPlayers" WHERE "codigo"=?`,
-      [String(codigo)],
+      `DELETE FROM "MINOILDES"."TradePlayer" WHERE "Id"=?`,
+      [Number(id)],
     );
   }
 

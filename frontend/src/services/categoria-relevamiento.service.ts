@@ -8,6 +8,8 @@ export interface ProductoSAP {
 }
 
 export interface TradeItem {
+  id?: number
+  idProducto: string | null
   codigo: string
   nombre: string
   rubro: string | null
@@ -15,6 +17,9 @@ export interface TradeItem {
   subgrupo: string | null
   clase: string | null
   subclase: string | null
+  mercado: string | null
+  estado: string | null
+  pesoNeto: number | null
 }
 
 export interface PlayerSap {
@@ -61,12 +66,12 @@ class CategoriaRelevamientoService {
     await authService.http.post(`${BASE}/trade-items`, data)
   }
 
-  async updateTradeItem(codigo: string, data: Partial<TradeItem>): Promise<void> {
-    await authService.http.put(`${BASE}/trade-items/${encodeURIComponent(codigo)}`, data)
+  async updateTradeItem(id: number, data: Partial<TradeItem>): Promise<void> {
+    await authService.http.put(`${BASE}/trade-items/${id}`, data)
   }
 
-  async deleteTradeItem(codigo: string): Promise<void> {
-    await authService.http.delete(`${BASE}/trade-items/${encodeURIComponent(codigo)}`)
+  async deleteTradeItem(id: number): Promise<void> {
+    await authService.http.delete(`${BASE}/trade-items/${id}`)
   }
 
   // ── Asignación producto → competidores ──────────────────────────────────────

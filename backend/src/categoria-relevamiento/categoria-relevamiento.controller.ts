@@ -63,13 +63,13 @@ export class CategoriaRelevamientoController {
     return this.service.createTradeItem(body);
   }
 
-  @Put('trade-items/:codigo')
-  updateTradeItem(@Param('codigo') codigo: string, @Body() body: any) {
-    return this.service.updateTradeItem(codigo, body);
+  @Put('trade-items/:id')
+  updateTradeItem(@Param('id') id: string, @Body() body: any) {
+    return this.service.updateTradeItem(Number(id), body);
   }
 
-  @Delete('trade-items/:codigo')
-  deleteTradeItem(@Param('codigo') codigo: string) {
-    return this.service.deleteTradeItem(codigo);
+  @Delete('trade-items/:id')
+  deleteTradeItem(@Param('id') id: string) {
+    return this.service.deleteTradeItem(Number(id));
   }
 }
