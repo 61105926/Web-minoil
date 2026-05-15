@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Request, Inject } from '@nestjs/common';
+import { Controller, Get, Post, Put, Patch, Delete, Body, Param, Query, UseGuards, Request, Inject } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CategoriaRelevamientoService } from './categoria-relevamiento.service';
 
@@ -36,6 +36,15 @@ export class CategoriaRelevamientoController {
   createTarea(@Body() body: any, @Request() req: any) {
     const usuario = (req.user?.username ?? req.user?.empId ?? 'user').substring(0, 10);
     return this.service.createTarea({ ...body, usuario, activo: 1 });
+  }
+
+  @Patch('tareas/:itemCode/:fecha')
+  updateTarea(
+    @Param('itemCode') itemCode: string,
+    @Param('fecha') fecha: string,
+    @Body() body: any,
+  ) {
+    return this.service.updateTarea(itemCode, fecha, body);
   }
 
   @Delete('tareas/:itemCode/:fecha')

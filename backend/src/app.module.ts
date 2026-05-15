@@ -14,6 +14,7 @@ import { MobileAuthModule } from './mobile-auth/mobile-auth.module';
 import { CategoriaRelevamientoModule } from './categoria-relevamiento/categoria-relevamiento.module';
 import { RutasModule } from './rutas/rutas.module';
 import { EntregasModule } from './entregas/entregas.module';
+import { RelevamientoModule } from './relevamiento/relevamiento.module';
 import { SpaModule } from './spa.module';
 
 @Module({
@@ -43,6 +44,7 @@ import { SpaModule } from './spa.module';
     CategoriaRelevamientoModule,
     RutasModule,
     EntregasModule,
+    RelevamientoModule,
     SpaModule, // Importar al final para que se registre después de los demás controladores
   ],
 })

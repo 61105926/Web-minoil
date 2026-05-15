@@ -82,6 +82,10 @@ class CategoriaRelevamientoService {
     await authService.http.post(`${BASE}/tareas`, data)
   }
 
+  async updateTarea(itemCode: string, fecha: string, data: { activo?: number; fechaini?: string; fechafin?: string; cartera?: number }): Promise<void> {
+    await authService.http.patch(`${BASE}/tareas/${encodeURIComponent(itemCode)}/${fecha}`, data)
+  }
+
   async deleteTarea(itemCode: string, fecha: string): Promise<void> {
     await authService.http.delete(`${BASE}/tareas/${encodeURIComponent(itemCode)}/${fecha}`)
   }

@@ -210,6 +210,30 @@ export class CategoriaRelevamientoService {
     );
   }
 
+  async updateTarea(
+    itemCode: string,
+    fecha: string,
+    data: { activo?: number; fechaini?: string; fechafin?: string; cartera?: number },
+  ): Promise<void> {
+    const sets: string[]  = [];
+    const values: any[]   = [];
+
+    if (data.activo   !== undefined) { sets.push('"activo"=?');                            values.push(Number(data.activo)); }
+    if (data.fechaini !== undefined) { sets.push('"fechaini"=TO_DATE(?,\'YYYY-MM-DD\')'); values.push(String(data.fechaini)); }
+    if (data.fechafin !== undefined) { sets.push('"fechafin"=TO_DATE(?,\'YYYY-MM-DD\')'); values.push(String(data.fechafin)); }
+    if (data.cartera  !== undefined) { sets.push('"cartera"=?');                           values.push(Number(data.cartera)); }
+
+    if (sets.length === 0) return;
+    values.push(String(itemCode), String(fecha));
+
+    await this.db.execute(
+      `UPDATE "MINOILDES"."TradePlayersTask"
+       SET ${sets.join(', ')}
+       WHERE "ItemCode"=? AND "fecha"=TO_DATE(?,'YYYY-MM-DD')`,
+      values,
+    );
+  }
+
   async deleteTarea(itemCode: string, fecha: string): Promise<void> {
     await this.db.execute(
       `DELETE FROM "MINOILDES"."TradePlayersTask"
