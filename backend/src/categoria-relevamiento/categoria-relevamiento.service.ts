@@ -12,12 +12,13 @@ export interface TradeItem {
   clase: string | null;
   subclase: string | null;
   mercado: string | null;
-  estado: string | null;
+  estado: boolean | null;
   pesoNeto: number | null;
 }
 
 export interface PlayerSap {
   itemCode: string;
+  canal: string;  // 'moderno' | 'tradicional' | 'ambos'
   players1: string | null;
   players2: string | null;
   players3: string | null;
@@ -78,57 +79,88 @@ export class CategoriaRelevamientoService {
       clase:      r.clase     ?? r.CLASE     ?? null,
       subclase:   r.subclase  ?? r.SUBCLASE  ?? null,
       mercado:    r.mercado   ?? r.MERCADO   ?? null,
-      estado:     r.Estado    ?? r.ESTADO    ?? null,
+      estado:     r.Estado != null ? Boolean(r.Estado) : (r.ESTADO != null ? Boolean(r.ESTADO) : null),
       pesoNeto:   r.PesoNeto  != null ? Number(r.PesoNeto ?? r.PESONETO) : null,
     }));
   }
 
-  // Todas las asignaciones con nombres resueltos
-  async getAllPlayerSap(): Promise<(PlayerSap & { itemName?: string; nombrePlayer1?: string; nombrePlayer2?: string; nombrePlayer3?: string })[]> {
+  // Todas las asignaciones — nombres de players se resuelven en el frontend
+  async getAllPlayerSap(): Promise<(PlayerSap & { itemName?: string })[]> {
     const rows = await this.db.query(`
       SELECT p."ItemCode", o."ItemName",
-             p."Players1", p."Players2", p."Players3",
-             ti1."Nombre" AS "NombrePlayer1",
-             ti2."Nombre" AS "NombrePlayer2",
-             ti3."Nombre" AS "NombrePlayer3"
+             p."Canal", p."Players1", p."Players2", p."Players3"
       FROM "MINOILDES"."TradePlayerSap" p
       LEFT JOIN "BD_MINOIL_PROD"."OITM" o ON o."ItemCode" = p."ItemCode"
-      LEFT JOIN "MINOILDES"."TradePlayer" ti1 ON ti1."codigo" = p."Players1"
-      LEFT JOIN "MINOILDES"."TradePlayer" ti2 ON ti2."codigo" = p."Players2"
-      LEFT JOIN "MINOILDES"."TradePlayer" ti3 ON ti3."codigo" = p."Players3"
-      ORDER BY o."ItemName" ASC
+      ORDER BY o."ItemName" ASC, p."Canal" ASC
     `);
     return rows.map((r: any) => ({
-      itemCode:      String(r.ItemCode      ?? r.ITEMCODE      ?? ''),
-      itemName:      String(r.ItemName      ?? r.ITEMNAME      ?? ''),
-      players1:      r.Players1    ?? r.PLAYERS1    ?? null,
-      players2:      r.Players2    ?? r.PLAYERS2    ?? null,
-      players3:      r.Players3    ?? r.PLAYERS3    ?? null,
-      nombrePlayer1: r.NombrePlayer1 ?? r.NOMBREPLAYER1 ?? null,
-      nombrePlayer2: r.NombrePlayer2 ?? r.NOMBREPLAYER2 ?? null,
-      nombrePlayer3: r.NombrePlayer3 ?? r.NOMBREPLAYER3 ?? null,
+      itemCode: String(r.ItemCode ?? r.ITEMCODE ?? ''),
+      itemName: String(r.ItemName ?? r.ITEMNAME ?? ''),
+      canal:    String(r.Canal    ?? r.CANAL    ?? 'ambos'),
+      players1: r.Players1 ?? r.PLAYERS1 ?? null,
+      players2: r.Players2 ?? r.PLAYERS2 ?? null,
+      players3: r.Players3 ?? r.PLAYERS3 ?? null,
     }));
   }
 
-  async deletePlayerSap(itemCode: string): Promise<void> {
-    await this.db.execute(
-      `DELETE FROM "MINOILDES"."TradePlayerSap" WHERE "ItemCode" = ?`,
-      [String(itemCode)],
-    );
+  async bulkUpsertPlayerSap(items: PlayerSap[]): Promise<{ inserted: number; updated: number }> {
+    let inserted = 0;
+    let updated = 0;
+    for (const item of items) {
+      if (!item.itemCode?.trim()) continue;
+      const canal = this.validateCanal(item.canal) ?? 'ambos';
+      const existing = await this.db.query(
+        `SELECT 1 FROM "MINOILDES"."TradePlayerSap" WHERE "ItemCode" = ? AND "Canal" = ?`,
+        [String(item.itemCode).trim(), canal],
+      );
+      await this.upsertPlayerSap({ ...item, canal });
+      if (existing && existing.length > 0) updated++;
+      else inserted++;
+    }
+    return { inserted, updated };
   }
 
-  // Players asignados a un ItemCode
-  async getPlayerSap(itemCode: string): Promise<PlayerSap | null> {
-    const rows = await this.db.query(
-      `SELECT "ItemCode","Players1","Players2","Players3"
-       FROM "MINOILDES"."TradePlayerSap"
-       WHERE "ItemCode" = ?`,
-      [String(itemCode)],
-    );
+  async deletePlayerSap(itemCode: string, canal?: string): Promise<void> {
+    const canalSafe = this.validateCanal(canal);
+    if (canalSafe) {
+      await this.db.execute(
+        `DELETE FROM "MINOILDES"."TradePlayerSap" WHERE "ItemCode" = ? AND "Canal" = ?`,
+        [String(itemCode), canalSafe],
+      );
+    } else {
+      await this.db.execute(
+        `DELETE FROM "MINOILDES"."TradePlayerSap" WHERE "ItemCode" = ?`,
+        [String(itemCode)],
+      );
+    }
+  }
+
+  // Players asignados a un ItemCode, opcionalmente filtrado por canal
+  async getPlayerSap(itemCode: string, canal?: string): Promise<PlayerSap | null> {
+    const canalSafe = this.validateCanal(canal);
+    let rows: any[];
+    if (canalSafe) {
+      rows = await this.db.query(
+        `SELECT "ItemCode","Canal","Players1","Players2","Players3"
+         FROM "MINOILDES"."TradePlayerSap"
+         WHERE "ItemCode" = ? AND "Canal" IN (?, 'ambos')
+         ORDER BY CASE WHEN "Canal" = ? THEN 1 ELSE 2 END`,
+        [String(itemCode), canalSafe, canalSafe],
+      );
+    } else {
+      rows = await this.db.query(
+        `SELECT "ItemCode","Canal","Players1","Players2","Players3"
+         FROM "MINOILDES"."TradePlayerSap"
+         WHERE "ItemCode" = ?
+         ORDER BY "Canal" ASC`,
+        [String(itemCode)],
+      );
+    }
     if (!rows || rows.length === 0) return null;
     const r = rows[0];
     return {
       itemCode: String(r.ItemCode ?? r.ITEMCODE ?? ''),
+      canal:    String(r.Canal    ?? r.CANAL    ?? 'ambos'),
       players1: r.Players1 ?? r.PLAYERS1 ?? null,
       players2: r.Players2 ?? r.PLAYERS2 ?? null,
       players3: r.Players3 ?? r.PLAYERS3 ?? null,
@@ -136,25 +168,31 @@ export class CategoriaRelevamientoService {
   }
 
   async upsertPlayerSap(data: PlayerSap): Promise<void> {
-    const existing = await this.getPlayerSap(data.itemCode);
-    if (existing) {
+    const canal = this.validateCanal(data.canal) ?? 'ambos';
+    const rows = await this.db.query(
+      `SELECT 1 FROM "MINOILDES"."TradePlayerSap" WHERE "ItemCode" = ? AND "Canal" = ?`,
+      [String(data.itemCode), canal],
+    );
+    if (rows && rows.length > 0) {
       await this.db.execute(
         `UPDATE "MINOILDES"."TradePlayerSap"
          SET "Players1"=?, "Players2"=?, "Players3"=?
-         WHERE "ItemCode"=?`,
+         WHERE "ItemCode"=? AND "Canal"=?`,
         [
           data.players1 ? String(data.players1) : null,
           data.players2 ? String(data.players2) : null,
           data.players3 ? String(data.players3) : null,
           String(data.itemCode),
+          canal,
         ],
       );
     } else {
       await this.db.execute(
-        `INSERT INTO "MINOILDES"."TradePlayerSap" ("ItemCode","Players1","Players2","Players3")
-         VALUES (?,?,?,?)`,
+        `INSERT INTO "MINOILDES"."TradePlayerSap" ("ItemCode","Canal","Players1","Players2","Players3")
+         VALUES (?,?,?,?,?)`,
         [
           String(data.itemCode),
+          canal,
           data.players1 ? String(data.players1) : null,
           data.players2 ? String(data.players2) : null,
           data.players3 ? String(data.players3) : null,
@@ -163,77 +201,72 @@ export class CategoriaRelevamientoService {
     }
   }
 
-  // Tareas / programaciones
+  // Tareas / programaciones — players se resuelven en el frontend
   async getTareas(): Promise<PlayersTask[]> {
     const rows = await this.db.query(`
       SELECT t."ItemCode", o."ItemName",
              t."fecha", t."fechaini", t."fechafin",
              t."cartera", t."usuario", t."activo",
-             p."Players1", p."Players2", p."Players3",
-             ti1."Nombre" AS "NombrePlayer1",
-             ti2."Nombre" AS "NombrePlayer2",
-             ti3."Nombre" AS "NombrePlayer3"
+             p."Players1", p."Players2", p."Players3"
       FROM "MINOILDES"."TradePlayersTask" t
       LEFT JOIN "BD_MINOIL_PROD"."OITM" o ON o."ItemCode" = t."ItemCode"
-      LEFT JOIN "MINOILDES"."TradePlayerSap" p ON p."ItemCode" = t."ItemCode"
-      LEFT JOIN "MINOILDES"."TradePlayer" ti1 ON ti1."codigo" = p."Players1"
-      LEFT JOIN "MINOILDES"."TradePlayer" ti2 ON ti2."codigo" = p."Players2"
-      LEFT JOIN "MINOILDES"."TradePlayer" ti3 ON ti3."codigo" = p."Players3"
+      LEFT JOIN (
+        SELECT "ItemCode","Players1","Players2","Players3",
+          ROW_NUMBER() OVER (PARTITION BY "ItemCode" ORDER BY "Canal" ASC) AS rn
+        FROM "MINOILDES"."TradePlayerSap"
+      ) p ON p."ItemCode" = t."ItemCode" AND p.rn = 1
       ORDER BY t."fecha" DESC
     `);
     return rows.map((r: any) => ({
-      itemCode:      String(r.ItemCode  ?? r.ITEMCODE  ?? ''),
-      itemName:      String(r.ItemName  ?? r.ITEMNAME  ?? ''),
-      fecha:         this.fmtDate(r.fecha    ?? r.FECHA),
-      fechaini:      this.fmtDate(r.fechaini ?? r.FECHAINI),
-      fechafin:      this.fmtDate(r.fechafin ?? r.FECHAFIN),
-      cartera:       Number(r.cartera   ?? r.CARTERA   ?? 0),
-      usuario:       String(r.usuario   ?? r.USUARIO   ?? ''),
-      activo:        Number(r.activo    ?? r.ACTIVO    ?? 1),
-      players1:      r.Players1 ?? r.PLAYERS1 ?? null,
-      players2:      r.Players2 ?? r.PLAYERS2 ?? null,
-      players3:      r.Players3 ?? r.PLAYERS3 ?? null,
-      nombrePlayer1: r.NombrePlayer1 ?? r.NOMBREPLAYER1 ?? null,
-      nombrePlayer2: r.NombrePlayer2 ?? r.NOMBREPLAYER2 ?? null,
-      nombrePlayer3: r.NombrePlayer3 ?? r.NOMBREPLAYER3 ?? null,
+      itemCode: String(r.ItemCode  ?? r.ITEMCODE  ?? ''),
+      itemName: String(r.ItemName  ?? r.ITEMNAME  ?? ''),
+      fecha:    this.fmtDate(r.fecha    ?? r.FECHA),
+      fechaini: this.fmtDate(r.fechaini ?? r.FECHAINI),
+      fechafin: this.fmtDate(r.fechafin ?? r.FECHAFIN),
+      cartera:  Number(r.cartera   ?? r.CARTERA   ?? 0),
+      usuario:  String(r.usuario   ?? r.USUARIO   ?? ''),
+      activo:   Number(r.activo    ?? r.ACTIVO    ?? 1),
+      players1: r.Players1 ?? r.PLAYERS1 ?? null,
+      players2: r.Players2 ?? r.PLAYERS2 ?? null,
+      players3: r.Players3 ?? r.PLAYERS3 ?? null,
     }));
   }
 
-  async getTareasActivas(cartera?: number): Promise<PlayersTask[]> {
+  async getTareasActivas(cartera?: number, canal?: string): Promise<PlayersTask[]> {
     const filtroCartera = cartera != null ? `AND t."cartera" = ${Number(cartera)}` : '';
+    const canalSafe = this.validateCanal(canal) ?? 'ambos';
     const rows = await this.db.query(`
       SELECT t."ItemCode", o."ItemName",
              t."fecha", t."fechaini", t."fechafin",
              t."cartera", t."usuario", t."activo",
-             p."Players1", p."Players2", p."Players3",
-             ti1."Nombre" AS "NombrePlayer1",
-             ti2."Nombre" AS "NombrePlayer2",
-             ti3."Nombre" AS "NombrePlayer3"
+             p."Players1", p."Players2", p."Players3"
       FROM "MINOILDES"."TradePlayersTask" t
       LEFT JOIN "BD_MINOIL_PROD"."OITM" o ON o."ItemCode" = t."ItemCode"
-      LEFT JOIN "MINOILDES"."TradePlayerSap" p ON p."ItemCode" = t."ItemCode"
-      LEFT JOIN "MINOILDES"."TradePlayer" ti1 ON ti1."codigo" = p."Players1"
-      LEFT JOIN "MINOILDES"."TradePlayer" ti2 ON ti2."codigo" = p."Players2"
-      LEFT JOIN "MINOILDES"."TradePlayer" ti3 ON ti3."codigo" = p."Players3"
+      LEFT JOIN (
+        SELECT "ItemCode","Players1","Players2","Players3",
+          ROW_NUMBER() OVER (
+            PARTITION BY "ItemCode"
+            ORDER BY CASE "Canal" WHEN '${canalSafe}' THEN 1 ELSE 2 END
+          ) AS rn
+        FROM "MINOILDES"."TradePlayerSap"
+        WHERE "Canal" IN ('${canalSafe}', 'ambos')
+      ) p ON p."ItemCode" = t."ItemCode" AND p.rn = 1
       WHERE t."activo" = 1
         ${filtroCartera}
       ORDER BY o."ItemName" ASC
     `);
     return rows.map((r: any) => ({
-      itemCode:      String(r.ItemCode  ?? r.ITEMCODE  ?? ''),
-      itemName:      String(r.ItemName  ?? r.ITEMNAME  ?? ''),
-      fecha:         this.fmtDate(r.fecha    ?? r.FECHA),
-      fechaini:      this.fmtDate(r.fechaini ?? r.FECHAINI),
-      fechafin:      this.fmtDate(r.fechafin ?? r.FECHAFIN),
-      cartera:       Number(r.cartera   ?? r.CARTERA   ?? 0),
-      usuario:       String(r.usuario   ?? r.USUARIO   ?? ''),
-      activo:        Number(r.activo    ?? r.ACTIVO    ?? 1),
-      players1:      r.Players1 ?? r.PLAYERS1 ?? null,
-      players2:      r.Players2 ?? r.PLAYERS2 ?? null,
-      players3:      r.Players3 ?? r.PLAYERS3 ?? null,
-      nombrePlayer1: r.NombrePlayer1 ?? r.NOMBREPLAYER1 ?? null,
-      nombrePlayer2: r.NombrePlayer2 ?? r.NOMBREPLAYER2 ?? null,
-      nombrePlayer3: r.NombrePlayer3 ?? r.NOMBREPLAYER3 ?? null,
+      itemCode: String(r.ItemCode  ?? r.ITEMCODE  ?? ''),
+      itemName: String(r.ItemName  ?? r.ITEMNAME  ?? ''),
+      fecha:    this.fmtDate(r.fecha    ?? r.FECHA),
+      fechaini: this.fmtDate(r.fechaini ?? r.FECHAINI),
+      fechafin: this.fmtDate(r.fechafin ?? r.FECHAFIN),
+      cartera:  Number(r.cartera   ?? r.CARTERA   ?? 0),
+      usuario:  String(r.usuario   ?? r.USUARIO   ?? ''),
+      activo:   Number(r.activo    ?? r.ACTIVO    ?? 1),
+      players1: r.Players1 ?? r.PLAYERS1 ?? null,
+      players2: r.Players2 ?? r.PLAYERS2 ?? null,
+      players3: r.Players3 ?? r.PLAYERS3 ?? null,
     }));
   }
 
@@ -302,7 +335,7 @@ export class CategoriaRelevamientoService {
         data.clase    ? String(data.clase)    : null,
         data.subclase ? String(data.subclase) : null,
         data.mercado  ? String(data.mercado)  : null,
-        data.estado   ? String(data.estado)   : null,
+        data.estado != null ? (data.estado ? 1 : 0) : null,
         data.pesoNeto != null ? Number(data.pesoNeto) : null,
       ],
     );
@@ -323,11 +356,32 @@ export class CategoriaRelevamientoService {
         data.clase    ? String(data.clase)    : null,
         data.subclase ? String(data.subclase) : null,
         data.mercado  ? String(data.mercado)  : null,
-        data.estado   ? String(data.estado)   : null,
+        data.estado != null ? (data.estado ? 1 : 0) : null,
         data.pesoNeto != null ? Number(data.pesoNeto) : null,
         Number(id),
       ],
     );
+  }
+
+  async bulkUpsertTradeItems(items: TradeItem[]): Promise<{ inserted: number; updated: number }> {
+    let inserted = 0;
+    let updated = 0;
+    for (const item of items) {
+      if (!item.codigo?.trim()) continue;
+      const existing = await this.db.query(
+        `SELECT "Id" FROM "MINOILDES"."TradePlayer" WHERE "codigo" = ?`,
+        [String(item.codigo).trim()],
+      );
+      if (existing && existing.length > 0) {
+        const id = Number(existing[0].Id ?? existing[0].ID ?? 0);
+        await this.updateTradeItem(id, item);
+        updated++;
+      } else {
+        await this.createTradeItem(item);
+        inserted++;
+      }
+    }
+    return { inserted, updated };
   }
 
   async deleteTradeItem(id: number): Promise<void> {
@@ -335,6 +389,12 @@ export class CategoriaRelevamientoService {
       `DELETE FROM "MINOILDES"."TradePlayer" WHERE "Id"=?`,
       [Number(id)],
     );
+  }
+
+  private validateCanal(canal?: string): string | null {
+    if (!canal) return null;
+    const allowed = ['moderno', 'tradicional', 'ambos'];
+    return allowed.includes(canal) ? canal : null;
   }
 
   private fmtDate(val: any): string {

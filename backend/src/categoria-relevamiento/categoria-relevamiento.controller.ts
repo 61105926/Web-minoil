@@ -18,8 +18,8 @@ export class CategoriaRelevamientoController {
   }
 
   @Get('player-sap')
-  getPlayerSap(@Query('itemCode') itemCode?: string) {
-    if (itemCode) return this.service.getPlayerSap(itemCode);
+  getPlayerSap(@Query('itemCode') itemCode?: string, @Query('canal') canal?: string) {
+    if (itemCode) return this.service.getPlayerSap(itemCode, canal);
     return this.service.getAllPlayerSap();
   }
 
@@ -29,8 +29,13 @@ export class CategoriaRelevamientoController {
   }
 
   @Delete('player-sap/:itemCode')
-  deletePlayerSap(@Param('itemCode') itemCode: string) {
-    return this.service.deletePlayerSap(itemCode);
+  deletePlayerSap(@Param('itemCode') itemCode: string, @Query('canal') canal?: string) {
+    return this.service.deletePlayerSap(itemCode, canal);
+  }
+
+  @Post('player-sap/import')
+  importPlayerSap(@Body() body: { items: any[] }) {
+    return this.service.bulkUpsertPlayerSap(body.items ?? []);
   }
 
   @Get('tareas')
@@ -71,5 +76,10 @@ export class CategoriaRelevamientoController {
   @Delete('trade-items/:id')
   deleteTradeItem(@Param('id') id: string) {
     return this.service.deleteTradeItem(Number(id));
+  }
+
+  @Post('trade-items/import')
+  importTradeItems(@Body() body: { items: any[] }) {
+    return this.service.bulkUpsertTradeItems(body.items ?? []);
   }
 }

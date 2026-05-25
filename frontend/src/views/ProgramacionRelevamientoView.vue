@@ -57,15 +57,29 @@
       <!-- ══════════════════════ TAB: ASIGNACIÓN ════════════════════════════════ -->
       <template v-if="activeTab === 'asignacion'">
 
-        <!-- Barra de búsqueda + botón agregar -->
-        <div class="flex gap-3 items-center">
-          <div class="relative flex-1">
+        <!-- Barra de búsqueda + botones -->
+        <div class="flex gap-2 items-center flex-wrap">
+          <div class="relative flex-1 min-w-[200px]">
             <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
             </svg>
             <input v-model="asigFilter" type="text" placeholder="Buscar producto por código o nombre..."
               class="w-full h-10 pl-9 pr-3 border border-gray-200 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm" />
           </div>
+          <button @click="descargarPlantillaAsig"
+            class="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs font-bold px-3 py-2.5 rounded-xl transition-colors border border-gray-200 dark:border-gray-600 whitespace-nowrap">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+            Plantilla
+          </button>
+          <label class="flex items-center gap-1.5 cursor-pointer bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-3 py-2.5 rounded-xl transition-colors whitespace-nowrap shadow-sm">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
+            </svg>
+            Importar Excel
+            <input type="file" accept=".xlsx,.xls,.csv" class="hidden" @change="onAsigExcelFile" />
+          </label>
           <button @click="openAsigModal(null)"
             class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors shadow-sm whitespace-nowrap">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -89,12 +103,18 @@
         <!-- Grid de tarjetas -->
         <div v-else-if="filteredAsig.length > 0"
           class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div v-for="a in pagedAsig" :key="a.itemCode"
+          <div v-for="a in pagedAsig" :key="`${a.itemCode}-${a.canal}`"
             class="bg-white dark:bg-gray-800 rounded-xl border border-l-4 border-gray-200 dark:border-gray-700 border-l-[#012F9D] shadow-sm hover:shadow-md transition-all overflow-hidden group">
             <!-- Card header -->
             <div class="flex items-start justify-between px-4 pt-4 pb-3">
               <div class="min-w-0 flex-1">
-                <span class="inline-block font-mono text-[10px] font-black text-[#012F9D] dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded mb-1">{{ a.itemCode }}</span>
+                <div class="flex items-center gap-1.5 mb-1 flex-wrap">
+                  <span class="font-mono text-[10px] font-black text-[#012F9D] dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded">{{ a.itemCode }}</span>
+                  <span :class="a.canal==='moderno'?'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400':a.canal==='tradicional'?'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400':'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'"
+                    class="text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wide">
+                    {{ a.canal }}
+                  </span>
+                </div>
                 <p class="text-sm font-semibold text-gray-800 dark:text-gray-200 leading-tight" :title="a.itemName">
                   {{ a.itemName || '—' }}
                 </p>
@@ -210,6 +230,20 @@
                   </div>
                 </div>
 
+                <!-- Canal -->
+                <div>
+                  <label class="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-2">Canal</label>
+                  <div class="flex gap-2">
+                    <button v-for="opt in [{v:'ambos',l:'Ambos',cls:'bg-purple-100 text-purple-700 border-purple-300'},{v:'moderno',l:'Moderno',cls:'bg-emerald-100 text-emerald-700 border-emerald-300'},{v:'tradicional',l:'Tradicional',cls:'bg-amber-100 text-amber-700 border-amber-300'}]"
+                      :key="opt.v"
+                      @click="asigForm.canal = opt.v"
+                      :class="asigForm.canal===opt.v ? opt.cls+' border-2 font-black shadow-sm' : 'bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-600'"
+                      class="flex-1 py-2 px-3 text-xs rounded-lg border transition-all">
+                      {{ opt.l }}
+                    </button>
+                  </div>
+                </div>
+
                 <!-- Competidores -->
                 <div>
                   <label class="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-3">Competidores asignados</label>
@@ -305,6 +339,47 @@
                 <button @click="deleteAsigTarget=null" class="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Cancelar</button>
                 <button @click="doDeleteAsig" :disabled="deletingAsig" class="px-4 py-2 text-sm bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-semibold rounded-lg">
                   {{ deletingAsig ? 'Eliminando...' : 'Eliminar' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </Teleport>
+
+        <!-- Modal importar asignaciones Excel -->
+        <Teleport to="body">
+          <div v-if="asigXlsxModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-8">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[80vh]">
+              <div class="bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-5 flex-shrink-0">
+                <h2 class="text-white font-bold text-lg">Importar asignaciones desde Excel</h2>
+                <p class="text-green-100 text-sm mt-0.5">{{ asigXlsxRows.length }} filas detectadas — revisá antes de confirmar</p>
+              </div>
+              <div class="overflow-auto flex-1 p-4">
+                <table class="w-full text-xs border-collapse">
+                  <thead>
+                    <tr class="bg-gray-50 dark:bg-gray-700">
+                      <th v-for="h in Object.keys(asigXlsxRows[0] ?? {})" :key="h"
+                        class="border border-gray-200 dark:border-gray-600 px-2 py-1.5 text-left font-bold text-gray-600 dark:text-gray-300">{{ h }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(row, i) in asigXlsxRows.slice(0, 50)" :key="i" class="hover:bg-blue-50 dark:hover:bg-gray-700">
+                      <td v-for="h in Object.keys(asigXlsxRows[0] ?? {})" :key="h"
+                        class="border border-gray-100 dark:border-gray-700 px-2 py-1 text-gray-700 dark:text-gray-300 truncate max-w-[140px]">{{ row[h] ?? '' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <p v-if="asigXlsxRows.length > 50" class="text-xs text-gray-400 mt-2 text-center">Mostrando 50 de {{ asigXlsxRows.length }} filas</p>
+              </div>
+              <p v-if="asigXlsxError" class="text-sm text-red-500 px-6 py-2 flex-shrink-0">{{ asigXlsxError }}</p>
+              <div class="flex gap-3 justify-end px-6 py-4 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-100 dark:border-gray-700 flex-shrink-0">
+                <button @click="asigXlsxModal=false" class="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Cancelar</button>
+                <button @click="confirmAsigXlsxImport" :disabled="asigXlsxImporting"
+                  class="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-bold px-5 py-2 rounded-lg transition-colors">
+                  <svg v-if="asigXlsxImporting" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                  </svg>
+                  {{ asigXlsxImporting ? 'Importando...' : `Importar ${asigXlsxRows.length} asignaciones` }}
                 </button>
               </div>
             </div>
@@ -811,12 +886,28 @@
               <h2 class="font-extrabold text-gray-900 dark:text-gray-100">Competidores registrados</h2>
               <span class="text-xs font-black bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2.5 py-1 rounded-full">{{ filteredCat.length }}</span>
             </div>
-            <!-- Buscador catálogo -->
-            <div class="relative">
-              <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-              </svg>
-              <input v-model="catFilter" placeholder="Buscar competidor..." class="h-9 pl-9 pr-3 w-56 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400"/>
+            <!-- Buscador + importar Excel -->
+            <div class="flex items-center gap-2">
+              <div class="relative">
+                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                <input v-model="catFilter" placeholder="Buscar competidor..." class="h-9 pl-9 pr-3 w-44 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400"/>
+              </div>
+              <button @click="descargarPlantilla"
+                class="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs font-bold px-3 py-2 rounded-xl transition-colors whitespace-nowrap border border-gray-200 dark:border-gray-600">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                Plantilla
+              </button>
+              <label class="flex items-center gap-1.5 cursor-pointer bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-3 py-2 rounded-xl transition-colors whitespace-nowrap shadow-sm">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
+                </svg>
+                Importar Excel
+                <input type="file" accept=".xlsx,.xls,.csv" class="hidden" @change="onExcelFile" />
+              </label>
             </div>
           </div>
 
@@ -954,6 +1045,45 @@
           </div>
         </Teleport>
 
+        <!-- Modal importar Excel -->
+        <Teleport to="body">
+          <div v-if="xlsxModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-8">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[80vh]">
+              <div class="bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-5 flex-shrink-0">
+                <h2 class="text-white font-bold text-lg">Importar competidores desde Excel</h2>
+                <p class="text-green-100 text-sm mt-0.5">{{ xlsxRows.length }} filas detectadas — revisá antes de confirmar</p>
+              </div>
+              <div class="overflow-auto flex-1 p-4">
+                <table class="w-full text-xs border-collapse">
+                  <thead>
+                    <tr class="bg-gray-50 dark:bg-gray-700">
+                      <th v-for="h in xlsxHeaders" :key="h" class="border border-gray-200 dark:border-gray-600 px-2 py-1.5 text-left font-bold text-gray-600 dark:text-gray-300">{{ h }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(row, i) in xlsxRows.slice(0, 50)" :key="i" class="hover:bg-blue-50 dark:hover:bg-gray-700">
+                      <td v-for="h in xlsxHeaders" :key="h" class="border border-gray-100 dark:border-gray-700 px-2 py-1 text-gray-700 dark:text-gray-300 truncate max-w-[120px]">{{ row[h] ?? '' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <p v-if="xlsxRows.length > 50" class="text-xs text-gray-400 mt-2 text-center">Mostrando 50 de {{ xlsxRows.length }} filas</p>
+              </div>
+              <p v-if="xlsxError" class="text-sm text-red-500 px-6 py-2 flex-shrink-0">{{ xlsxError }}</p>
+              <div class="flex gap-3 justify-end px-6 py-4 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-100 dark:border-gray-700 flex-shrink-0">
+                <button @click="xlsxModal=false" class="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Cancelar</button>
+                <button @click="confirmXlsxImport" :disabled="xlsxImporting"
+                  class="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-bold px-5 py-2 rounded-lg transition-colors">
+                  <svg v-if="xlsxImporting" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                  </svg>
+                  {{ xlsxImporting ? 'Importando...' : `Importar ${xlsxRows.length} registros` }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </Teleport>
+
       </template><!-- fin tab catalogo -->
 
     </div>
@@ -962,6 +1092,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
+import * as XLSX from 'xlsx'
 import MainLayout from '@/components/layouts/MainLayout.vue'
 import svc, { type ProductoSAP, type TradeItem, type PlayerSap, type PlayersTask } from '@/services/categoria-relevamiento.service'
 
@@ -1014,7 +1145,7 @@ const playerSearch     = ref<[string, string, string]>(['', '', ''])
 const asigProductSearch = ref('')
 
 const asigForm = ref<PlayerSap>({
-  itemCode: '', itemName: '', players1: null, players2: null, players3: null
+  itemCode: '', canal: 'ambos', itemName: '', players1: null, players2: null, players3: null
 })
 
 const filteredAsig = computed(() => {
@@ -1084,7 +1215,7 @@ function openAsigModal(a: PlayerSap | null) {
   playerSearch.value      = ['', '', '']
   asigForm.value = a
     ? { ...a }
-    : { itemCode: '', itemName: '', players1: null, players2: null, players3: null }
+    : { itemCode: '', canal: 'ambos', itemName: '', players1: null, players2: null, players3: null }
   asigModal.value = true
 }
 
@@ -1094,10 +1225,12 @@ async function saveAsig() {
   asigSaving.value = true
   try {
     await svc.upsertPlayerSap(asigForm.value)
-    asignaciones.value = await svc.getAllPlayerSap()
     asigModal.value = false
+    asignaciones.value = await svc.getAllPlayerSap()
   } catch (e: any) {
-    asigError.value = e?.response?.data?.message ?? 'Error al guardar'
+    const msg = e?.response?.data?.message ?? e?.message ?? 'Error al guardar'
+    console.error('[saveAsig]', e)
+    asigError.value = msg
   } finally {
     asigSaving.value = false
   }
@@ -1109,7 +1242,7 @@ async function doDeleteAsig() {
   if (!deleteAsigTarget.value) return
   deletingAsig.value = true
   try {
-    await svc.deletePlayerSap(deleteAsigTarget.value.itemCode)
+    await svc.deletePlayerSap(deleteAsigTarget.value.itemCode, deleteAsigTarget.value.canal)
     deleteAsigTarget.value = null
     asignaciones.value = await svc.getAllPlayerSap()
   } finally {
@@ -1267,11 +1400,9 @@ function daysLeft(t: PlayersTask): number | null {
 }
 function itemName(t: PlayersTask): string { return (t as any).itemName ?? '' }
 function playersOf(t: PlayersTask): string[] {
-  return [
-    t.nombrePlayer1 ?? t.players1,
-    t.nombrePlayer2 ?? t.players2,
-    t.nombrePlayer3 ?? t.players3,
-  ].filter(Boolean) as string[]
+  return [t.players1, t.players2, t.players3]
+    .filter(Boolean)
+    .map(c => resolvePlayerName(c)) as string[]
 }
 
 async function toggleActivo(t: PlayersTask) {
@@ -1372,6 +1503,160 @@ async function doDeleteItem() {
     deleteItemTarget.value = null
     tradeItems.value = await svc.getTradeItems()
   } finally { deletingItem.value = false }
+}
+
+// ══════════════════════════ IMPORTAR ASIGNACIONES (EXCEL) ════════════════════
+
+const asigXlsxModal     = ref(false)
+const asigXlsxImporting = ref(false)
+const asigXlsxError     = ref('')
+const asigXlsxRows      = ref<Record<string, any>[]>([])
+
+const ASIG_COLUMN_MAP: Record<string, string> = {
+  itemcode: 'itemCode', codigo: 'itemCode', codigoproducto: 'itemCode',
+  canal: 'canal',
+  players1: 'players1', competidor1: 'players1', player1: 'players1', p1: 'players1',
+  players2: 'players2', competidor2: 'players2', player2: 'players2', p2: 'players2',
+  players3: 'players3', competidor3: 'players3', player3: 'players3', p3: 'players3',
+}
+
+function mapAsigXlsxRow(row: Record<string, any>): Partial<PlayerSap> {
+  const out: any = {}
+  for (const [k, v] of Object.entries(row)) {
+    const norm = k.toLowerCase().replace(/[^a-z0-9]/g, '')
+    const field = ASIG_COLUMN_MAP[norm]
+    if (field) out[field] = v != null && v !== '' ? String(v).trim() : null
+  }
+  if (!out.canal) out.canal = 'ambos'
+  return out
+}
+
+function descargarPlantillaAsig() {
+  const ws = XLSX.utils.aoa_to_sheet([
+    ['itemCode',   'canal',       'players1',  'players2',  'players3'],
+    ['101069',     'ambos',       '10000698',  '10000699',  ''],
+    ['101070',     'moderno',     '10000698',  '',          ''],
+    ['101071',     'tradicional', '10000699',  '10000698',  ''],
+  ])
+  ws['!cols'] = [16, 14, 12, 12, 12].map(w => ({ wch: w }))
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Asignaciones')
+  XLSX.writeFile(wb, 'plantilla_asignaciones.xlsx')
+}
+
+function onAsigExcelFile(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  ;(e.target as HTMLInputElement).value = ''
+  const reader = new FileReader()
+  reader.onload = (ev) => {
+    try {
+      const wb = XLSX.read(ev.target?.result, { type: 'binary' })
+      const ws = wb.Sheets[wb.SheetNames[0]]
+      const data = XLSX.utils.sheet_to_json<Record<string, any>>(ws, { defval: '' })
+      if (!data.length) { asigXlsxError.value = 'El archivo no contiene datos'; return }
+      asigXlsxRows.value  = data
+      asigXlsxError.value = ''
+      asigXlsxModal.value = true
+    } catch {
+      asigXlsxError.value = 'No se pudo leer el archivo'
+    }
+  }
+  reader.readAsBinaryString(file)
+}
+
+async function confirmAsigXlsxImport() {
+  asigXlsxImporting.value = true
+  asigXlsxError.value = ''
+  try {
+    const items = asigXlsxRows.value.map(mapAsigXlsxRow).filter(i => i.itemCode)
+    const result = await svc.importPlayerSap(items)
+    asigXlsxModal.value = false
+    asignaciones.value = await svc.getAllPlayerSap()
+    alert(`Importación completada: ${result.inserted} nuevas, ${result.updated} actualizadas`)
+  } catch (e: any) {
+    asigXlsxError.value = e?.response?.data?.message ?? 'Error al importar'
+  } finally {
+    asigXlsxImporting.value = false
+  }
+}
+
+// ══════════════════════════ IMPORTAR EXCEL ════════════════════════════════════
+
+const xlsxModal     = ref(false)
+const xlsxImporting = ref(false)
+const xlsxError     = ref('')
+const xlsxHeaders   = ref<string[]>([])
+const xlsxRows      = ref<Record<string, any>[]>([])
+
+// Map Excel column headers (flexible, case-insensitive) to TradeItem fields
+const COLUMN_MAP: Record<string, string> = {
+  codigo: 'codigo', code: 'codigo', cod: 'codigo',
+  nombre: 'nombre', name: 'nombre', producto: 'nombre',
+  idproducto: 'idProducto', id: 'idProducto', idprod: 'idProducto',
+  rubro: 'rubro', grupo: 'grupo', subgrupo: 'subgrupo',
+  clase: 'clase', subclase: 'subclase', mercado: 'mercado',
+  estado: 'estado', pesoneto: 'pesoNeto', peso: 'pesoNeto',
+}
+
+function mapXlsxRow(row: Record<string, any>): Partial<TradeItem> {
+  const out: any = {}
+  for (const [k, v] of Object.entries(row)) {
+    const norm = k.toLowerCase().replace(/[^a-z]/g, '')
+    const field = COLUMN_MAP[norm]
+    if (field) out[field] = v ?? null
+  }
+  return out
+}
+
+function descargarPlantilla() {
+  const ws = XLSX.utils.aoa_to_sheet([
+    ['codigo',     'nombre',                            'idProducto', 'rubro', 'grupo',     'subgrupo', 'clase',  'subclase',          'mercado', 'estado', 'pesoNeto'],
+    ['10000698',   'FIDEO CAROZZI MACARRONI BSA 400 GR', 69000,       'A&B',  'ALIMENTOS', 'BASICOS',  'PASTAS', 'CAROZZI,TRATORIA',  'M',        1,        0],
+    ['10000699',   'EJEMPLO PRODUCTO 2',                 '',          'A&B',  'ALIMENTOS', 'BASICOS',  'PASTAS', '',                  'M',        1,        0.5],
+  ])
+  ws['!cols'] = [12, 40, 12, 8, 12, 12, 12, 20, 8, 8, 10].map(w => ({ wch: w }))
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Competidores')
+  XLSX.writeFile(wb, 'plantilla_competidores.xlsx')
+}
+
+function onExcelFile(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  ;(e.target as HTMLInputElement).value = ''
+  const reader = new FileReader()
+  reader.onload = (ev) => {
+    try {
+      const wb = XLSX.read(ev.target?.result, { type: 'binary' })
+      const ws = wb.Sheets[wb.SheetNames[0]]
+      const data = XLSX.utils.sheet_to_json<Record<string, any>>(ws, { defval: '' })
+      if (!data.length) { xlsxError.value = 'El archivo no contiene datos'; return }
+      xlsxHeaders.value = Object.keys(data[0])
+      xlsxRows.value    = data
+      xlsxError.value   = ''
+      xlsxModal.value   = true
+    } catch {
+      xlsxError.value = 'No se pudo leer el archivo. Asegurate de que sea .xlsx o .csv'
+    }
+  }
+  reader.readAsBinaryString(file)
+}
+
+async function confirmXlsxImport() {
+  xlsxImporting.value = true
+  xlsxError.value = ''
+  try {
+    const items = xlsxRows.value.map(mapXlsxRow).filter(i => i.codigo || i.nombre)
+    const result = await svc.importTradeItems(items)
+    xlsxModal.value = false
+    tradeItems.value = await svc.getTradeItems()
+    alert(`Importación completada: ${result.inserted} nuevos, ${result.updated} actualizados`)
+  } catch (e: any) {
+    xlsxError.value = e?.response?.data?.message ?? 'Error al importar'
+  } finally {
+    xlsxImporting.value = false
+  }
 }
 
 // ── Load ──────────────────────────────────────────────────────────────────────

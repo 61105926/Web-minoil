@@ -18,12 +18,13 @@ export interface TradeItem {
   clase: string | null
   subclase: string | null
   mercado: string | null
-  estado: string | null
+  estado: boolean | null
   pesoNeto: number | null
 }
 
 export interface PlayerSap {
   itemCode: string
+  canal: string   // 'moderno' | 'tradicional' | 'ambos'
   itemName?: string
   players1: string | null
   players2: string | null
@@ -80,8 +81,8 @@ class CategoriaRelevamientoService {
     return res.data
   }
 
-  async getPlayerSap(itemCode: string): Promise<PlayerSap | null> {
-    const res = await authService.http.get(`${BASE}/player-sap`, { params: { itemCode } })
+  async getPlayerSap(itemCode: string, canal?: string): Promise<PlayerSap | null> {
+    const res = await authService.http.get(`${BASE}/player-sap`, { params: { itemCode, canal } })
     return res.data
   }
 
@@ -89,8 +90,18 @@ class CategoriaRelevamientoService {
     await authService.http.post(`${BASE}/player-sap`, data)
   }
 
-  async deletePlayerSap(itemCode: string): Promise<void> {
-    await authService.http.delete(`${BASE}/player-sap/${encodeURIComponent(itemCode)}`)
+  async deletePlayerSap(itemCode: string, canal?: string): Promise<void> {
+    await authService.http.delete(`${BASE}/player-sap/${encodeURIComponent(itemCode)}`, { params: canal ? { canal } : {} })
+  }
+
+  async importTradeItems(items: Partial<TradeItem>[]): Promise<{ inserted: number; updated: number }> {
+    const res = await authService.http.post(`${BASE}/trade-items/import`, { items })
+    return res.data
+  }
+
+  async importPlayerSap(items: Partial<PlayerSap>[]): Promise<{ inserted: number; updated: number }> {
+    const res = await authService.http.post(`${BASE}/player-sap/import`, { items })
+    return res.data
   }
 
   // ── Programación de tareas ──────────────────────────────────────────────────

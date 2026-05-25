@@ -30,9 +30,9 @@ export class CategoriaRelevamientoMobileController {
   ) {}
 
   @Get('programacion')
-  async getProgramacion(@Query('cartera') cartera?: string) {
+  async getProgramacion(@Query('cartera') cartera?: string, @Query('canal') canal?: string) {
     const carteraNum = cartera != null && cartera !== '' ? parseInt(cartera, 10) : undefined;
-    const tareas = await this.service.getTareasActivas(carteraNum);
+    const tareas = await this.service.getTareasActivas(carteraNum, canal);
 
     return tareas.map(t => ({
       itemCode: t.itemCode,
@@ -51,8 +51,8 @@ export class CategoriaRelevamientoMobileController {
   }
 
   @Get('players')
-  getPlayers(@Query('itemCode') itemCode: string) {
-    return this.service.getPlayerSap(itemCode);
+  getPlayers(@Query('itemCode') itemCode: string, @Query('canal') canal?: string) {
+    return this.service.getPlayerSap(itemCode, canal);
   }
 
   @Get('trade-items')
