@@ -71,7 +71,7 @@ export class DatabaseService implements OnModuleDestroy {
     });
   }
 
-  async query(sql: string, params: any[] = []): Promise<any[]> {
+  async query(sql: string, params: any[] = [], silent = false): Promise<any[]> {
     try {
       if (!this.connection) {
         try {
@@ -96,11 +96,11 @@ export class DatabaseService implements OnModuleDestroy {
           await this.connect();
           return await this.execQuery(sql, params);
         }
-        console.error('Error ejecutando query:', execError.message);
+        if (!silent) console.error('Error ejecutando query:', execError.message);
         throw execError;
       }
     } catch (error: any) {
-      console.error('Error en query:', error.message);
+      if (!silent) console.error('Error en query:', error.message);
       throw error;
     }
   }

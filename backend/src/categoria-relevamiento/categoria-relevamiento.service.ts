@@ -31,6 +31,8 @@ export interface PlayersTask {
   fechaini: string;
   fechafin: string;
   cartera: number;
+  nivel?: string | null;    // 'nacional' | 'ciudad' | 'ruta' | 'cliente'
+  alcance?: string | null;  // JSON array: '["La Paz","Santa Cruz"]'
   usuario: string;
   activo: number;
   players1?: string | null;
@@ -46,6 +48,57 @@ export class CategoriaRelevamientoService {
   constructor(
     @Inject(DatabaseService) private db: DatabaseService,
   ) {}
+
+  async getCiudades(): Promise<{ code: string; name: string }[]> {
+    const rows = await this.db.query(`
+      SELECT "Code", "Name"
+      FROM "BD_MINOIL_PROD"."OUBR"
+      WHERE IFNULL("Name", '') <> ''
+      ORDER BY "Name" ASC
+    `);
+    return rows
+      .map((r: any) => ({
+        code: String(r.Code ?? r.CODE ?? '').trim(),
+        name: String(r.Name ?? r.NAME ?? '').trim(),
+      }))
+      .filter((r: any) => r.code && r.name);
+  }
+
+  async getRutas(): Promise<{ code: string; name: string }[]> {
+    const rows = await this.db.query(`
+      SELECT "U_RUTA", "SlpName", "U_sucursal"
+      FROM "BD_MINOIL_PROD"."OSLP"
+      WHERE IFNULL("U_RUTA", 0) <> 0
+        AND IFNULL("SlpName", '') <> ''
+      ORDER BY "U_sucursal" ASC, "SlpName" ASC
+    `);
+    return rows.map((r: any) => ({
+      code: String(r.U_RUTA ?? r.U_ruta ?? '').trim(),
+      name: String(r.SlpName ?? r.SLPNAME ?? '').trim(),
+    })).filter((r: any) => r.code && r.name);
+  }
+
+  async getClientes(q?: string): Promise<{ code: string; name: string; city?: string }[]> {
+    const hasQuery = q && q.trim().length > 0;
+    const whereSearch = hasQuery
+      ? `AND (UPPER("CardCode") LIKE UPPER(?) OR UPPER("CardName") LIKE UPPER(?))`
+      : '';
+    const params: any[] = hasQuery ? [`%${q!.trim()}%`, `%${q!.trim()}%`] : [];
+    const rows = await this.db.query(`
+      SELECT TOP 100 "CardCode", "CardName", "City"
+      FROM "BD_MINOIL_PROD"."OCRD"
+      WHERE "CardCode" IS NOT NULL
+        ${whereSearch}
+      ORDER BY "CardName" ASC
+    `, params);
+    return rows
+      .map((r: any) => ({
+        code: String(r.CardCode ?? r.CARDCODE ?? '').trim(),
+        name: String(r.CardName ?? r.CARDNAME ?? '').trim(),
+        city: r.City != null ? String(r.City ?? r.CITY ?? '').trim() : undefined,
+      }))
+      .filter((r: any) => r.code && r.name);
+  }
 
   // Productos propios de SAP
   async getProductosPropios(): Promise<{ itemCode: string; itemName: string }[]> {
@@ -97,9 +150,9 @@ export class CategoriaRelevamientoService {
       itemCode: String(r.ItemCode ?? r.ITEMCODE ?? ''),
       itemName: String(r.ItemName ?? r.ITEMNAME ?? ''),
       canal:    String(r.Canal    ?? r.CANAL    ?? 'ambos'),
-      players1: r.Players1 ?? r.PLAYERS1 ?? null,
-      players2: r.Players2 ?? r.PLAYERS2 ?? null,
-      players3: r.Players3 ?? r.PLAYERS3 ?? null,
+      players1: r.Players1 != null ? String(r.Players1) : (r.PLAYERS1 != null ? String(r.PLAYERS1) : null),
+      players2: r.Players2 != null ? String(r.Players2) : (r.PLAYERS2 != null ? String(r.PLAYERS2) : null),
+      players3: r.Players3 != null ? String(r.Players3) : (r.PLAYERS3 != null ? String(r.PLAYERS3) : null),
     }));
   }
 
@@ -161,9 +214,9 @@ export class CategoriaRelevamientoService {
     return {
       itemCode: String(r.ItemCode ?? r.ITEMCODE ?? ''),
       canal:    String(r.Canal    ?? r.CANAL    ?? 'ambos'),
-      players1: r.Players1 ?? r.PLAYERS1 ?? null,
-      players2: r.Players2 ?? r.PLAYERS2 ?? null,
-      players3: r.Players3 ?? r.PLAYERS3 ?? null,
+      players1: r.Players1 != null ? String(r.Players1) : (r.PLAYERS1 != null ? String(r.PLAYERS1) : null),
+      players2: r.Players2 != null ? String(r.Players2) : (r.PLAYERS2 != null ? String(r.PLAYERS2) : null),
+      players3: r.Players3 != null ? String(r.Players3) : (r.PLAYERS3 != null ? String(r.PLAYERS3) : null),
     };
   }
 
@@ -201,45 +254,69 @@ export class CategoriaRelevamientoService {
     }
   }
 
-  // Tareas / programaciones — players se resuelven en el frontend
-  async getTareas(): Promise<PlayersTask[]> {
-    const rows = await this.db.query(`
-      SELECT t."ItemCode", o."ItemName",
-             t."fecha", t."fechaini", t."fechafin",
-             t."cartera", t."usuario", t."activo",
-             p."Players1", p."Players2", p."Players3"
-      FROM "MINOILDES"."TradePlayersTask" t
-      LEFT JOIN "BD_MINOIL_PROD"."OITM" o ON o."ItemCode" = t."ItemCode"
-      LEFT JOIN (
-        SELECT "ItemCode","Players1","Players2","Players3",
-          ROW_NUMBER() OVER (PARTITION BY "ItemCode" ORDER BY "Canal" ASC) AS rn
-        FROM "MINOILDES"."TradePlayerSap"
-      ) p ON p."ItemCode" = t."ItemCode" AND p.rn = 1
-      ORDER BY t."fecha" DESC
-    `);
-    return rows.map((r: any) => ({
+  private mapTareaRow(r: any): PlayersTask {
+    return {
       itemCode: String(r.ItemCode  ?? r.ITEMCODE  ?? ''),
       itemName: String(r.ItemName  ?? r.ITEMNAME  ?? ''),
       fecha:    this.fmtDate(r.fecha    ?? r.FECHA),
       fechaini: this.fmtDate(r.fechaini ?? r.FECHAINI),
       fechafin: this.fmtDate(r.fechafin ?? r.FECHAFIN),
       cartera:  Number(r.cartera   ?? r.CARTERA   ?? 0),
+      nivel:    r.nivel   != null ? String(r.nivel   ?? r.NIVEL   ?? 'nacional') : null,
+      alcance:  r.alcance != null ? String(r.alcance ?? r.ALCANCE ?? '')         : null,
       usuario:  String(r.usuario   ?? r.USUARIO   ?? ''),
       activo:   Number(r.activo    ?? r.ACTIVO    ?? 1),
-      players1: r.Players1 ?? r.PLAYERS1 ?? null,
-      players2: r.Players2 ?? r.PLAYERS2 ?? null,
-      players3: r.Players3 ?? r.PLAYERS3 ?? null,
-    }));
+      players1: r.Players1 != null ? String(r.Players1) : (r.PLAYERS1 != null ? String(r.PLAYERS1) : null),
+      players2: r.Players2 != null ? String(r.Players2) : (r.PLAYERS2 != null ? String(r.PLAYERS2) : null),
+      players3: r.Players3 != null ? String(r.Players3) : (r.PLAYERS3 != null ? String(r.PLAYERS3) : null),
+    };
   }
 
-  async getTareasActivas(cartera?: number, canal?: string): Promise<PlayersTask[]> {
+  private readonly TAREAS_COLS_FULL = `t."ItemCode", o."ItemName",
+             t."fecha", t."fechaini", t."fechafin",
+             t."cartera", t."nivel", t."alcance", t."usuario", t."activo"`;
+  private readonly TAREAS_COLS_COMPAT = `t."ItemCode", o."ItemName",
+             t."fecha", t."fechaini", t."fechafin",
+             t."cartera", t."usuario", t."activo"`;
+  private readonly TAREAS_JOIN = `
+      FROM "MINOILDES"."TradePlayersTask" t
+      LEFT JOIN "BD_MINOIL_PROD"."OITM" o ON o."ItemCode" = t."ItemCode"
+      LEFT JOIN (
+        SELECT "ItemCode","Players1","Players2","Players3",
+          ROW_NUMBER() OVER (PARTITION BY "ItemCode" ORDER BY "Canal" ASC) AS rn
+        FROM "MINOILDES"."TradePlayerSap"
+      ) p ON p."ItemCode" = t."ItemCode" AND p.rn = 1`;
+
+  // Tareas / programaciones — players se resuelven en el frontend
+  async getTareas(): Promise<PlayersTask[]> {
+    let rows: any[];
+    try {
+      rows = await this.db.query(
+        `SELECT ${this.TAREAS_COLS_FULL}, p."Players1", p."Players2", p."Players3"
+         ${this.TAREAS_JOIN}
+         ORDER BY t."fecha" DESC`,
+        [], true,
+      );
+    } catch {
+      rows = await this.db.query(
+        `SELECT ${this.TAREAS_COLS_COMPAT}, p."Players1", p."Players2", p."Players3"
+         ${this.TAREAS_JOIN}
+         ORDER BY t."fecha" DESC`,
+      );
+    }
+    return rows.map((r: any) => this.mapTareaRow(r));
+  }
+
+  async getTareasActivas(
+    cartera?: number,
+    canal?: string,
+    ciudad?: string,
+    ruta?: string,
+    cliente?: string,
+  ): Promise<PlayersTask[]> {
     const filtroCartera = cartera != null ? `AND t."cartera" = ${Number(cartera)}` : '';
     const canalSafe = this.validateCanal(canal) ?? 'ambos';
-    const rows = await this.db.query(`
-      SELECT t."ItemCode", o."ItemName",
-             t."fecha", t."fechaini", t."fechafin",
-             t."cartera", t."usuario", t."activo",
-             p."Players1", p."Players2", p."Players3"
+    const joinActivas = `
       FROM "MINOILDES"."TradePlayersTask" t
       LEFT JOIN "BD_MINOIL_PROD"."OITM" o ON o."ItemCode" = t."ItemCode"
       LEFT JOIN (
@@ -252,45 +329,87 @@ export class CategoriaRelevamientoService {
         WHERE "Canal" IN ('${canalSafe}', 'ambos')
       ) p ON p."ItemCode" = t."ItemCode" AND p.rn = 1
       WHERE t."activo" = 1
-        ${filtroCartera}
-      ORDER BY o."ItemName" ASC
-    `);
-    return rows.map((r: any) => ({
-      itemCode: String(r.ItemCode  ?? r.ITEMCODE  ?? ''),
-      itemName: String(r.ItemName  ?? r.ITEMNAME  ?? ''),
-      fecha:    this.fmtDate(r.fecha    ?? r.FECHA),
-      fechaini: this.fmtDate(r.fechaini ?? r.FECHAINI),
-      fechafin: this.fmtDate(r.fechafin ?? r.FECHAFIN),
-      cartera:  Number(r.cartera   ?? r.CARTERA   ?? 0),
-      usuario:  String(r.usuario   ?? r.USUARIO   ?? ''),
-      activo:   Number(r.activo    ?? r.ACTIVO    ?? 1),
-      players1: r.Players1 ?? r.PLAYERS1 ?? null,
-      players2: r.Players2 ?? r.PLAYERS2 ?? null,
-      players3: r.Players3 ?? r.PLAYERS3 ?? null,
-    }));
+        AND t."fechaini" <= CURRENT_DATE
+        AND t."fechafin" >= CURRENT_DATE
+        ${filtroCartera}`;
+    let rawRows: any[];
+    try {
+      rawRows = await this.db.query(
+        `SELECT ${this.TAREAS_COLS_FULL}, p."Players1", p."Players2", p."Players3"
+         ${joinActivas}
+         ORDER BY o."ItemName" ASC`,
+        [], true,
+      );
+    } catch {
+      rawRows = await this.db.query(
+        `SELECT ${this.TAREAS_COLS_COMPAT}, p."Players1", p."Players2", p."Players3"
+         ${joinActivas}
+         ORDER BY o."ItemName" ASC`,
+      );
+    }
+    const tareas = rawRows.map((r: any) => this.mapTareaRow(r));
+
+    // Filter by alcance in app code (avoids complex JSON SQL)
+    const hasContext = ciudad || ruta || cliente;
+    if (!hasContext) return tareas;
+
+    return tareas.filter(t => {
+      const nivel = t.nivel ?? 'nacional';
+      if (!nivel || nivel === 'nacional') return true;
+      if (!t.alcance) return true;
+      try {
+        const items: string[] = JSON.parse(t.alcance);
+        if (nivel === 'ciudad'  && ciudad)  return items.includes(ciudad);
+        if (nivel === 'ruta'    && ruta)    return items.includes(ruta);
+        if (nivel === 'cliente' && cliente) return items.includes(cliente);
+      } catch { return true; }
+      return false;
+    });
   }
 
   async createTarea(data: PlayersTask): Promise<void> {
-    await this.db.execute(
-      `INSERT INTO "MINOILDES"."TradePlayersTask"
-       ("ItemCode","fecha","fechaini","fechafin","cartera","usuario","activo")
-       VALUES (?,TO_DATE(?,'YYYY-MM-DD'),TO_DATE(?,'YYYY-MM-DD'),TO_DATE(?,'YYYY-MM-DD'),?,?,?)`,
-      [
-        String(data.itemCode),
-        String(data.fecha),
-        String(data.fechaini),
-        String(data.fechafin),
-        Number(data.cartera),
-        String(data.usuario).substring(0, 10),
-        Number(data.activo ?? 1),
-      ],
-    );
+    try {
+      await this.db.execute(
+        `INSERT INTO "MINOILDES"."TradePlayersTask"
+         ("ItemCode","fecha","fechaini","fechafin","cartera","nivel","alcance","usuario","activo")
+         VALUES (?,TO_DATE(?,'YYYY-MM-DD'),TO_DATE(?,'YYYY-MM-DD'),TO_DATE(?,'YYYY-MM-DD'),?,?,?,?,?)`,
+        [
+          String(data.itemCode),
+          String(data.fecha),
+          String(data.fechaini),
+          String(data.fechafin),
+          Number(data.cartera ?? 0),
+          data.nivel   ? String(data.nivel)   : 'nacional',
+          data.alcance ? String(data.alcance) : null,
+          String(data.usuario).substring(0, 10),
+          Number(data.activo ?? 1),
+        ],
+      );
+    } catch (e: any) {
+      if (String(e?.message ?? '').includes('invalid column name')) {
+        // Fallback: columns nivel/alcance not yet created — insert without them
+        await this.db.execute(
+          `INSERT INTO "MINOILDES"."TradePlayersTask"
+           ("ItemCode","fecha","fechaini","fechafin","cartera","usuario","activo")
+           VALUES (?,TO_DATE(?,'YYYY-MM-DD'),TO_DATE(?,'YYYY-MM-DD'),TO_DATE(?,'YYYY-MM-DD'),?,?,?)`,
+          [
+            String(data.itemCode),
+            String(data.fecha),
+            String(data.fechaini),
+            String(data.fechafin),
+            Number(data.cartera ?? 0),
+            String(data.usuario).substring(0, 10),
+            Number(data.activo ?? 1),
+          ],
+        );
+      } else { throw e; }
+    }
   }
 
   async updateTarea(
     itemCode: string,
     fecha: string,
-    data: { activo?: number; fechaini?: string; fechafin?: string; cartera?: number },
+    data: { activo?: number; fechaini?: string; fechafin?: string; cartera?: number; nivel?: string | null; alcance?: string | null },
   ): Promise<void> {
     const sets: string[]  = [];
     const values: any[]   = [];
@@ -299,14 +418,33 @@ export class CategoriaRelevamientoService {
     if (data.fechaini !== undefined) { sets.push('"fechaini"=TO_DATE(?,\'YYYY-MM-DD\')'); values.push(String(data.fechaini)); }
     if (data.fechafin !== undefined) { sets.push('"fechafin"=TO_DATE(?,\'YYYY-MM-DD\')'); values.push(String(data.fechafin)); }
     if (data.cartera  !== undefined) { sets.push('"cartera"=?');                           values.push(Number(data.cartera)); }
+    const nivelSets: string[] = [];
+    const nivelVals: any[]   = [];
+    if (data.nivel    !== undefined) { nivelSets.push('"nivel"=?');   nivelVals.push(data.nivel ? String(data.nivel) : 'nacional'); }
+    if (data.alcance  !== undefined) { nivelSets.push('"alcance"=?'); nivelVals.push(data.alcance ? String(data.alcance) : null); }
+
+    if (sets.length === 0 && nivelSets.length === 0) return;
+
+    // Try full update (with nivel/alcance); fall back if columns don't exist
+    if (nivelSets.length > 0) {
+      const allSets   = [...sets, ...nivelSets];
+      const allValues = [...values, ...nivelVals, String(itemCode), String(fecha)];
+      try {
+        await this.db.execute(
+          `UPDATE "MINOILDES"."TradePlayersTask" SET ${allSets.join(', ')} WHERE "ItemCode"=? AND "fecha"=TO_DATE(?,'YYYY-MM-DD')`,
+          allValues,
+        );
+        return;
+      } catch (e: any) {
+        if (!String(e?.message ?? '').includes('invalid column name')) throw e;
+        // Columns not yet created — continue with base sets only
+      }
+    }
 
     if (sets.length === 0) return;
     values.push(String(itemCode), String(fecha));
-
     await this.db.execute(
-      `UPDATE "MINOILDES"."TradePlayersTask"
-       SET ${sets.join(', ')}
-       WHERE "ItemCode"=? AND "fecha"=TO_DATE(?,'YYYY-MM-DD')`,
+      `UPDATE "MINOILDES"."TradePlayersTask" SET ${sets.join(', ')} WHERE "ItemCode"=? AND "fecha"=TO_DATE(?,'YYYY-MM-DD')`,
       values,
     );
   }
@@ -367,7 +505,7 @@ export class CategoriaRelevamientoService {
     let inserted = 0;
     let updated = 0;
     for (const item of items) {
-      if (!item.codigo?.trim()) continue;
+      if (!String(item.codigo ?? '').trim()) continue;
       const existing = await this.db.query(
         `SELECT "Id" FROM "MINOILDES"."TradePlayer" WHERE "codigo" = ?`,
         [String(item.codigo).trim()],

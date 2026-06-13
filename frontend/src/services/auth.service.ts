@@ -7,18 +7,27 @@ const KEYCLOAK_CLIENT = 'minoil-client'
 
 // ---------- PKCE helpers ----------
 
-async function generateCodeVerifier(): Promise<string> {
+const webCrypto: Crypto = (globalThis.crypto ?? (window as any).crypto) as Crypto
+
+function generateCodeVerifier(): string {
   const array = new Uint8Array(32)
-  crypto.getRandomValues(array)
+  webCrypto.getRandomValues(array)
   return btoa(String.fromCharCode(...array))
     .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
 }
 
-async function generateCodeChallenge(verifier: string): Promise<string> {
-  const data = new TextEncoder().encode(verifier)
-  const digest = await crypto.subtle.digest('SHA-256', data)
-  return btoa(String.fromCharCode(...new Uint8Array(digest)))
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
+async function generateCodeChallenge(verifier: string): Promise<{ challenge: string; method: string }> {
+  // crypto.subtle solo está disponible en contextos seguros (HTTPS / localhost)
+  if (!webCrypto.subtle) {
+    return { challenge: verifier, method: 'plain' }
+  }
+  const data   = new TextEncoder().encode(verifier)
+  const digest = await webCrypto.subtle.digest('SHA-256', data)
+  return {
+    challenge: btoa(String.fromCharCode(...new Uint8Array(digest)))
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, ''),
+    method: 'S256',
+  }
 }
 
 function getRedirectUri(): string {
@@ -30,9 +39,9 @@ function getRedirectUri(): string {
 class AuthService {
   /** Redirige a Keycloak (login + password reset nativo) */
   async startLogin(): Promise<void> {
-    const verifier   = await generateCodeVerifier()
-    const challenge  = await generateCodeChallenge(verifier)
-    const state      = crypto.randomUUID()
+    const verifier              = generateCodeVerifier()
+    const { challenge, method } = await generateCodeChallenge(verifier)
+    const state                 = webCrypto.randomUUID()
 
     sessionStorage.setItem('pkce_verifier', verifier)
     sessionStorage.setItem('pkce_state', state)
@@ -43,7 +52,7 @@ class AuthService {
       response_type:         'code',
       scope:                 'openid profile email',
       code_challenge:        challenge,
-      code_challenge_method: 'S256',
+      code_challenge_method: method,
       state,
     })
 

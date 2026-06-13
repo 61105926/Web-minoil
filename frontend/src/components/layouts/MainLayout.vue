@@ -10,11 +10,11 @@
     >
       <div class="flex flex-col h-full">
         <!-- Logo -->
-        <div class="flex items-center justify-between h-16 px-6 border-b border-gray-200 dark:border-gray-700">
+        <div class="flex items-center justify-between h-20 px-6 border-b border-gray-200 dark:border-gray-700">
           <img
             :src="theme === 'light' ? '/logo-minoil-white.png' : '/logo-minoil-black.png'"
             alt="Minoil S.A."
-            class="h-12 w-auto"
+            class="h-20 w-auto"
           />
           <button
             @click="isSidebarOpen = false"
@@ -152,6 +152,11 @@ const menuItems: Array<{ label: string; path: string; icon: IconName }> = [
     label: 'Programación Relevamiento',
     path: '/programacion-relevamiento',
     icon: 'calendar'
+  },
+  {
+    label: 'Materiales POP',
+    path: '/materiales',
+    icon: 'document'
   },
   {
     label: 'Distribuidores',

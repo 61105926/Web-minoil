@@ -12,6 +12,21 @@ export class CategoriaRelevamientoController {
     return this.service.getProductosPropios();
   }
 
+  @Get('ciudades')
+  getCiudades() {
+    return this.service.getCiudades();
+  }
+
+  @Get('rutas')
+  getRutas() {
+    return this.service.getRutas();
+  }
+
+  @Get('clientes')
+  getClientes(@Query('q') q?: string) {
+    return this.service.getClientes(q);
+  }
+
   @Get('trade-items')
   getTradeItems() {
     return this.service.getTradeItems();
@@ -55,7 +70,14 @@ export class CategoriaRelevamientoController {
     @Param('fecha') fecha: string,
     @Body() body: any,
   ) {
-    return this.service.updateTarea(itemCode, fecha, body);
+    return this.service.updateTarea(itemCode, fecha, {
+      activo:   body.activo,
+      fechaini: body.fechaini,
+      fechafin: body.fechafin,
+      cartera:  body.cartera,
+      nivel:    body.nivel,
+      alcance:  body.alcance,
+    });
   }
 
   @Delete('tareas/:itemCode/:fecha')

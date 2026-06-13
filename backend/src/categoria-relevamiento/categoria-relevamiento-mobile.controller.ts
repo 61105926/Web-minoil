@@ -30,9 +30,15 @@ export class CategoriaRelevamientoMobileController {
   ) {}
 
   @Get('programacion')
-  async getProgramacion(@Query('cartera') cartera?: string, @Query('canal') canal?: string) {
+  async getProgramacion(
+    @Query('cartera') cartera?: string,
+    @Query('canal') canal?: string,
+    @Query('ciudad') ciudad?: string,
+    @Query('ruta') ruta?: string,
+    @Query('cliente') cliente?: string,
+  ) {
     const carteraNum = cartera != null && cartera !== '' ? parseInt(cartera, 10) : undefined;
-    const tareas = await this.service.getTareasActivas(carteraNum, canal);
+    const tareas = await this.service.getTareasActivas(carteraNum, canal, ciudad, ruta, cliente);
 
     return tareas.map(t => ({
       itemCode: t.itemCode,

@@ -480,8 +480,8 @@
               </div>
             </div>
 
-            <!-- Período + Cartera -->
-            <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <!-- Período -->
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div>
                 <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Fecha registro</label>
                 <input v-model="progForm.fecha" type="date"
@@ -497,11 +497,88 @@
                 <input v-model="progForm.fechafin" type="date"
                   class="w-full h-9 border border-gray-300 dark:border-gray-600 rounded-lg px-3 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
               </div>
-              <div>
-                <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Cartera</label>
-                <input v-model.number="progForm.cartera" type="number" min="0" placeholder="0"
-                  class="w-full h-9 border border-gray-300 dark:border-gray-600 rounded-lg px-3 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+            </div>
+
+            <!-- Alcance -->
+            <div class="rounded-xl border border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-700/30 space-y-3">
+              <p class="text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">Alcance de la programación</p>
+              <!-- Nivel buttons -->
+              <div class="grid grid-cols-4 gap-1.5">
+                <button v-for="n in NIVELES" :key="n.id" type="button"
+                  @click="progSelectNivel(n.id)"
+                  :class="progNivel === n.id ? n.activeCls : 'bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600'"
+                  class="flex flex-col items-center gap-1 py-2.5 px-2 rounded-xl text-xs font-bold transition-all shadow-sm">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="n.iconPath"/>
+                  </svg>
+                  {{ n.label }}
+                </button>
               </div>
+
+              <!-- Nacional: solo mensaje -->
+              <div v-if="progNivel === 'nacional'" class="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-lg">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Aplica a todo el territorio — sin restricción geográfica
+              </div>
+
+              <!-- Ciudad / Ruta: search + chips -->
+              <template v-if="progNivel === 'ciudad' || progNivel === 'ruta'">
+                <div class="relative">
+                  <input v-model="progAlcanceSearch"
+                    :placeholder="progNivel === 'ciudad' ? 'Buscar ciudad...' : 'Buscar ruta...'"
+                    class="w-full h-9 border border-gray-300 dark:border-gray-600 rounded-lg px-3 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400"/>
+                  <div v-if="progAlcanceSearch && progAlcanceOpts.length"
+                    class="absolute z-30 top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-xl max-h-44 overflow-y-auto">
+                    <button v-for="opt in progAlcanceOpts.slice(0,30)" :key="opt.code"
+                      type="button" @mousedown.prevent="progAddItem(opt.name)"
+                      class="w-full text-left px-4 py-2 hover:bg-indigo-50 dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-300 border-b border-gray-50 dark:border-gray-700 last:border-0">
+                      <span class="font-mono text-xs text-indigo-500 mr-2">{{ opt.code }}</span>{{ opt.name }}
+                    </button>
+                  </div>
+                </div>
+                <p v-if="!progAlcanceOpts.length && progAlcanceSearch" class="text-xs text-gray-400 italic px-1">Sin resultados</p>
+                <div v-if="progAlcanceItems.length" class="flex flex-wrap gap-1.5 mt-1">
+                  <span v-for="item in progAlcanceItems" :key="item"
+                    :class="nivelInfo(progNivel).chipCls"
+                    class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full">
+                    {{ item }}
+                    <button type="button" @click="progRemoveItem(item)" class="opacity-60 hover:opacity-100 ml-0.5 leading-none">×</button>
+                  </span>
+                </div>
+                <p v-else class="text-xs text-gray-400 italic">Ninguna seleccionada todavía</p>
+              </template>
+
+              <!-- Cliente: búsqueda async -->
+              <template v-if="progNivel === 'cliente'">
+                <div class="relative">
+                  <input v-model="progAlcanceSearch" placeholder="Buscar cliente por código o nombre..."
+                    class="w-full h-9 border border-gray-300 dark:border-gray-600 rounded-lg px-3 pr-9 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400"/>
+                  <svg v-if="progClienteLoading" class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-indigo-400" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                  </svg>
+                </div>
+                <div v-if="progClienteResults.length"
+                  class="border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 max-h-44 overflow-y-auto">
+                  <button v-for="c in progClienteResults" :key="c.code"
+                    type="button" @mousedown.prevent="progAddItem(c.code)"
+                    class="w-full text-left px-4 py-2 hover:bg-indigo-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-0 transition-colors">
+                    <p class="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">{{ c.code }}</p>
+                    <p class="text-sm text-gray-700 dark:text-gray-300 truncate">{{ c.name }}</p>
+                    <p v-if="c.city" class="text-[10px] text-gray-400">{{ c.city }}</p>
+                  </button>
+                </div>
+                <div v-if="progAlcanceItems.length" class="flex flex-wrap gap-1.5 mt-1">
+                  <span v-for="item in progAlcanceItems" :key="item"
+                    class="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-2.5 py-1 rounded-full font-mono">
+                    {{ item }}
+                    <button type="button" @click="progRemoveItem(item)" class="opacity-60 hover:opacity-100 ml-0.5 leading-none">×</button>
+                  </span>
+                </div>
+                <p v-if="!progAlcanceItems.length" class="text-xs text-gray-400 italic">Ningún cliente seleccionado — hacé clic en uno de la lista</p>
+              </template>
             </div>
 
             <p v-if="progError" class="flex items-center gap-1.5 text-sm text-red-500">
@@ -536,10 +613,10 @@
             <input v-model="filterText" type="text" placeholder="Buscar producto..."
               class="w-full h-9 pl-9 pr-3 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-sm"/>
           </div>
-          <select v-model="filterCartera"
+          <select v-model="filterNivel"
             class="h-9 border border-gray-200 dark:border-gray-600 rounded-lg px-3 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-sm">
-            <option value="">Todas las carteras</option>
-            <option v-for="c in carteras" :key="c" :value="c">Cartera {{ c }}</option>
+            <option value="">Todos los niveles</option>
+            <option v-for="n in NIVELES" :key="n.id" :value="n.id">{{ n.label }}</option>
           </select>
           <select v-model="filterEstado"
             class="h-9 border border-gray-200 dark:border-gray-600 rounded-lg px-3 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-sm">
@@ -549,7 +626,7 @@
             <option value="vencido">Vencido</option>
             <option value="inactivo">Inactivo</option>
           </select>
-          <button v-if="filterText||filterCartera||filterEstado" @click="clearFilters"
+          <button v-if="filterText||filterNivel||filterEstado" @click="clearFilters"
             class="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 underline">Limpiar</button>
           <span class="text-xs text-gray-400 ml-auto">{{ filteredTareas.length }} resultado{{ filteredTareas.length!==1?'s':'' }}</span>
         </div>
@@ -575,7 +652,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
             </svg>
             <p class="text-sm font-semibold">Sin programaciones</p>
-            <p class="text-xs">{{ filterText||filterCartera||filterEstado?'Ajustá los filtros':'Creá la primera programación arriba' }}</p>
+            <p class="text-xs">{{ filterText||filterNivel||filterEstado?'Ajustá los filtros':'Creá la primera programación arriba' }}</p>
           </div>
 
           <!-- Grid de tarjetas -->
@@ -606,15 +683,25 @@
                 </button>
               </div>
 
-              <!-- Período + cartera -->
-              <div class="px-4 pb-3 flex items-center gap-3 text-xs text-gray-400 dark:text-gray-500">
+              <!-- Período -->
+              <div class="px-4 pb-2 flex items-center gap-3 text-xs text-gray-400 dark:text-gray-500">
                 <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                 </svg>
                 <span class="font-medium text-gray-600 dark:text-gray-300">{{ t.fechaini }}</span>
                 <span>→</span>
                 <span class="font-medium text-gray-600 dark:text-gray-300">{{ t.fechafin }}</span>
-                <span v-if="t.cartera" class="ml-auto font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-[10px]">C{{ t.cartera }}</span>
+              </div>
+              <!-- Alcance badge -->
+              <div class="px-4 pb-3">
+                <span :class="nivelInfo(t.nivel).chipCls"
+                  class="inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wide">
+                  <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="nivelInfo(t.nivel).iconPath"/>
+                  </svg>
+                  {{ nivelInfo(t.nivel).label }}
+                  <span v-if="alcanceSummary(t)" class="normal-case font-semibold tracking-normal ml-0.5">· {{ alcanceSummary(t) }}</span>
+                </span>
               </div>
 
               <!-- Competidores -->
@@ -686,10 +773,77 @@
                     class="w-full h-9 border border-gray-300 dark:border-gray-600 rounded-lg px-3 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
                 </div>
               </div>
-              <div class="mb-5">
-                <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Cartera</label>
-                <input v-model.number="editProgForm.cartera" type="number" min="0"
-                  class="w-full h-9 border border-gray-300 dark:border-gray-600 rounded-lg px-3 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+              <!-- Alcance selector (edit) -->
+              <div class="mb-5 rounded-xl border border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-700/30 space-y-3">
+                <p class="text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">Alcance</p>
+                <div class="grid grid-cols-4 gap-1.5">
+                  <button v-for="n in NIVELES" :key="n.id" type="button"
+                    @click="editSelectNivel(n.id)"
+                    :class="editNivel === n.id ? n.activeCls : 'bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600'"
+                    class="flex flex-col items-center gap-1 py-2 px-1 rounded-xl text-xs font-bold transition-all shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="n.iconPath"/>
+                    </svg>
+                    {{ n.label }}
+                  </button>
+                </div>
+
+                <div v-if="editNivel === 'nacional'" class="text-xs text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-lg">
+                  Todo el territorio nacional
+                </div>
+
+                <template v-if="editNivel === 'ciudad' || editNivel === 'ruta'">
+                  <div class="relative">
+                    <input v-model="editAlcanceSearch"
+                      :placeholder="editNivel === 'ciudad' ? 'Buscar ciudad...' : 'Buscar ruta...'"
+                      class="w-full h-9 border border-gray-300 dark:border-gray-600 rounded-lg px-3 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400"/>
+                    <div v-if="editAlcanceSearch && editAlcanceOpts.length"
+                      class="absolute z-30 top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-xl max-h-40 overflow-y-auto">
+                      <button v-for="opt in editAlcanceOpts.slice(0,30)" :key="opt.code"
+                        type="button" @mousedown.prevent="editAddItem(opt.name)"
+                        class="w-full text-left px-4 py-2 hover:bg-indigo-50 dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-300 border-b border-gray-50 dark:border-gray-700 last:border-0">
+                        <span class="font-mono text-xs text-indigo-500 mr-2">{{ opt.code }}</span>{{ opt.name }}
+                      </button>
+                    </div>
+                  </div>
+                  <div v-if="editAlcanceItems.length" class="flex flex-wrap gap-1.5">
+                    <span v-for="item in editAlcanceItems" :key="item"
+                      :class="nivelInfo(editNivel).chipCls"
+                      class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full">
+                      {{ item }}
+                      <button type="button" @click="editRemoveItem(item)" class="opacity-60 hover:opacity-100 ml-0.5 leading-none">×</button>
+                    </span>
+                  </div>
+                  <p v-else class="text-xs text-gray-400 italic">Ninguna seleccionada</p>
+                </template>
+
+                <template v-if="editNivel === 'cliente'">
+                  <div class="relative">
+                    <input v-model="editAlcanceSearch" placeholder="Buscar cliente..."
+                      class="w-full h-9 border border-gray-300 dark:border-gray-600 rounded-lg px-3 pr-9 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400"/>
+                    <svg v-if="editClienteLoading" class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-indigo-400" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                    </svg>
+                  </div>
+                  <div v-if="editClienteResults.length"
+                    class="border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 max-h-40 overflow-y-auto">
+                    <button v-for="c in editClienteResults" :key="c.code"
+                      type="button" @mousedown.prevent="editAddItem(c.code)"
+                      class="w-full text-left px-4 py-2 hover:bg-indigo-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-0 transition-colors">
+                      <p class="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">{{ c.code }}</p>
+                      <p class="text-sm text-gray-700 dark:text-gray-300 truncate">{{ c.name }}</p>
+                    </button>
+                  </div>
+                  <div v-if="editAlcanceItems.length" class="flex flex-wrap gap-1.5">
+                    <span v-for="item in editAlcanceItems" :key="item"
+                      class="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full font-mono">
+                      {{ item }}
+                      <button type="button" @click="editRemoveItem(item)" class="opacity-60 hover:opacity-100 ml-0.5 leading-none">×</button>
+                    </span>
+                  </div>
+                  <p v-else class="text-xs text-gray-400 italic">Ningún cliente seleccionado</p>
+                </template>
               </div>
               <div class="flex gap-3 justify-end">
                 <button @click="editProgTarget=null" class="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Cancelar</button>
@@ -1094,7 +1248,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import * as XLSX from 'xlsx'
 import MainLayout from '@/components/layouts/MainLayout.vue'
-import svc, { type ProductoSAP, type TradeItem, type PlayerSap, type PlayersTask } from '@/services/categoria-relevamiento.service'
+import svc, { type ProductoSAP, type TradeItem, type PlayerSap, type PlayersTask, type Ruta, type Cliente } from '@/services/categoria-relevamiento.service'
 
 const today = new Date().toISOString().split('T')[0]
 
@@ -1111,13 +1265,129 @@ const productos    = ref<ProductoSAP[]>([])
 const tradeItems   = ref<TradeItem[]>([])
 const asignaciones = ref<PlayerSap[]>([])
 const tareas       = ref<PlayersTask[]>([])
+const ciudades     = ref<{ code: string; name: string }[]>([])
+const rutas        = ref<Ruta[]>([])
 const loadingTable = ref(false)
 const loadingAsig  = ref(false)
+
+// ── Alcance helpers ───────────────────────────────────────────────────────────
+const NIVELES = [
+  { id: 'nacional',  label: 'Nacional',  iconPath: 'M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z', activeCls: 'bg-[#012F9D] text-white', chipCls: 'bg-blue-100 text-[#012F9D]' },
+  { id: 'ciudad',    label: 'Ciudad',    iconPath: 'M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z', activeCls: 'bg-indigo-600 text-white', chipCls: 'bg-indigo-100 text-indigo-700' },
+  { id: 'ruta',      label: 'Ruta',      iconPath: 'M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7', activeCls: 'bg-purple-600 text-white', chipCls: 'bg-purple-100 text-purple-700' },
+  { id: 'cliente',   label: 'Cliente',   iconPath: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z', activeCls: 'bg-emerald-600 text-white', chipCls: 'bg-emerald-100 text-emerald-700' },
+]
+
+function alcanceFromString(s: string | null | undefined): string[] {
+  if (!s) return []
+  try { return JSON.parse(s) } catch { return [] }
+}
+function alcanceToString(items: string[]): string | null {
+  return items.length ? JSON.stringify(items) : null
+}
+function nivelInfo(id?: string | null) {
+  return NIVELES.find(n => n.id === (id ?? 'nacional')) ?? NIVELES[0]
+}
+function alcanceSummary(t: PlayersTask): string {
+  const items = alcanceFromString(t.alcance)
+  if (!items.length) return ''
+  if (items.length <= 3) return items.join(' · ')
+  return `${items.slice(0, 3).join(' · ')} +${items.length - 3}`
+}
+
+// Alcance selector state — CREATE form
+const progNivel        = ref('nacional')
+const progAlcanceItems = ref<string[]>([])
+const progAlcanceSearch = ref('')
+const progClienteResults = ref<Cliente[]>([])
+const progClienteLoading = ref(false)
+let progClienteTimer: ReturnType<typeof setTimeout> | undefined
+
+watch(progAlcanceSearch, async (q) => {
+  if (progNivel.value !== 'cliente') return
+  clearTimeout(progClienteTimer)
+  progClienteLoading.value = true
+  progClienteTimer = setTimeout(async () => {
+    try { progClienteResults.value = await svc.getClientes(q || undefined) }
+    finally { progClienteLoading.value = false }
+  }, 300)
+})
+
+const progAlcanceOpts = computed(() => {
+  const q = progAlcanceSearch.value.toLowerCase()
+  if (progNivel.value === 'ciudad') return ciudades.value.filter(c => String(c.name ?? '').toLowerCase().includes(q) || String(c.code ?? '').toLowerCase().includes(q))
+  if (progNivel.value === 'ruta')   return rutas.value.filter(r => String(r.name ?? '').toLowerCase().includes(q) || String(r.code ?? '').toLowerCase().includes(q))
+  return [] as { code: string; name: string }[]
+})
+
+function progAddItem(val: string) {
+  if (!progAlcanceItems.value.includes(val)) progAlcanceItems.value.push(val)
+  progAlcanceSearch.value = ''
+}
+function progRemoveItem(val: string) {
+  progAlcanceItems.value = progAlcanceItems.value.filter(v => v !== val)
+}
+async function progSelectNivel(id: string) {
+  progNivel.value = id
+  progAlcanceItems.value = []
+  progAlcanceSearch.value = ''
+  progClienteResults.value = []
+  if (id === 'cliente') {
+    progClienteLoading.value = true
+    try { progClienteResults.value = await svc.getClientes() }
+    finally { progClienteLoading.value = false }
+  }
+}
+
+// Alcance selector state — EDIT modal
+const editNivel         = ref('nacional')
+const editAlcanceItems  = ref<string[]>([])
+const editAlcanceSearch = ref('')
+const editClienteResults = ref<Cliente[]>([])
+const editClienteLoading = ref(false)
+let editClienteTimer: ReturnType<typeof setTimeout> | undefined
+
+watch(editAlcanceSearch, async (q) => {
+  if (editNivel.value !== 'cliente') return
+  clearTimeout(editClienteTimer)
+  editClienteLoading.value = true
+  editClienteTimer = setTimeout(async () => {
+    try { editClienteResults.value = await svc.getClientes(q || undefined) }
+    finally { editClienteLoading.value = false }
+  }, 300)
+})
+
+const editAlcanceOpts = computed(() => {
+  const q = editAlcanceSearch.value.toLowerCase()
+  if (editNivel.value === 'ciudad') return ciudades.value.filter(c => String(c.name ?? '').toLowerCase().includes(q) || String(c.code ?? '').toLowerCase().includes(q))
+  if (editNivel.value === 'ruta')   return rutas.value.filter(r => r.name.toLowerCase().includes(q) || r.code.toLowerCase().includes(q))
+  return []
+})
+
+function editAddItem(val: string) {
+  if (!editAlcanceItems.value.includes(val)) editAlcanceItems.value.push(val)
+  editAlcanceSearch.value = ''
+}
+function editRemoveItem(val: string) {
+  editAlcanceItems.value = editAlcanceItems.value.filter(v => v !== val)
+}
+async function editSelectNivel(id: string) {
+  editNivel.value = id
+  editAlcanceItems.value = []
+  editAlcanceSearch.value = ''
+  editClienteResults.value = []
+  if (id === 'cliente') {
+    editClienteLoading.value = true
+    try { editClienteResults.value = await svc.getClientes() }
+    finally { editClienteLoading.value = false }
+  }
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function resolvePlayerName(codigo: string | null | undefined): string {
   if (!codigo) return ''
-  return tradeItems.value.find(t => t.codigo === codigo)?.nombre ?? codigo
+  const c = String(codigo).trim()
+  return tradeItems.value.find(t => String(t.codigo).trim() === c)?.nombre ?? c
 }
 
 function getAsigPlayer(a: PlayerSap, n: number): string | null {
@@ -1298,6 +1568,9 @@ async function submitProg() {
   if (!progForm.value.itemCode) { progError.value = 'Seleccioná un producto'; return }
   if (!progForm.value.fechaini || !progForm.value.fechafin) { progError.value = 'Las fechas inicio y fin son obligatorias'; return }
   if (progForm.value.fechafin < progForm.value.fechaini) { progError.value = 'La fecha fin no puede ser anterior al inicio'; return }
+  if (progNivel.value !== 'nacional' && progAlcanceItems.value.length === 0) {
+    progError.value = `Seleccioná al menos un elemento de ${nivelInfo(progNivel.value).label}`; return
+  }
   progSaving.value = true
   try {
     await svc.createTarea({
@@ -1306,10 +1579,13 @@ async function submitProg() {
       fechaini: progForm.value.fechaini,
       fechafin: progForm.value.fechafin,
       cartera:  progForm.value.cartera,
+      nivel:    progNivel.value,
+      alcance:  alcanceToString(progAlcanceItems.value),
     })
     await loadTareas()
     clearProgProducto()
     progForm.value = { itemCode: '', itemName: '', fecha: today, fechaini: today, fechafin: today, cartera: 0 }
+    progSelectNivel('nacional')
     formOpen.value = false
   } catch (e: any) {
     progError.value = e?.response?.data?.message ?? 'Error al guardar'
@@ -1319,14 +1595,9 @@ async function submitProg() {
 }
 
 // Filtros tabla
-const filterText    = ref('')
-const filterCartera = ref('')
-const filterEstado  = ref('')
-
-const carteras = computed(() => {
-  const s = new Set(tareas.value.map(t => String(t.cartera)).filter(Boolean))
-  return [...s].sort()
-})
+const filterText   = ref('')
+const filterNivel  = ref('')
+const filterEstado = ref('')
 
 function estadoKey(t: PlayersTask): 'vigente' | 'pendiente' | 'vencido' | 'inactivo' {
   if (!t.activo) return 'inactivo'
@@ -1339,13 +1610,13 @@ const filteredTareas = computed(() =>
   tareas.value.filter(t => {
     const q = filterText.value.toLowerCase()
     if (q && !t.itemCode.toLowerCase().includes(q) && !itemName(t).toLowerCase().includes(q)) return false
-    if (filterCartera.value && String(t.cartera) !== filterCartera.value) return false
+    if (filterNivel.value && (t.nivel ?? 'nacional') !== filterNivel.value) return false
     if (filterEstado.value && estadoKey(t) !== filterEstado.value) return false
     return true
   })
 )
 
-function clearFilters() { filterText.value = ''; filterCartera.value = ''; filterEstado.value = '' }
+function clearFilters() { filterText.value = ''; filterNivel.value = ''; filterEstado.value = '' }
 
 // ── Paginación ────────────────────────────────────────────────────────────────
 const PAGE_SIZE = 12
@@ -1419,14 +1690,21 @@ const editProgForm   = ref({ fechaini: '', fechafin: '', cartera: 0 })
 
 function openEditProg(t: PlayersTask) {
   editProgTarget.value = t
-  editProgForm.value = { fechaini: t.fechaini, fechafin: t.fechafin, cartera: t.cartera }
+  editProgForm.value   = { fechaini: t.fechaini, fechafin: t.fechafin, cartera: t.cartera }
+  editSelectNivel(t.nivel ?? 'nacional')
+  editAlcanceItems.value = alcanceFromString(t.alcance)
 }
 async function doEditProg() {
   if (!editProgTarget.value) return
   editProgSaving.value = true
   try {
-    await svc.updateTarea(editProgTarget.value.itemCode, editProgTarget.value.fecha, editProgForm.value)
-    Object.assign(editProgTarget.value, editProgForm.value)
+    const payload = {
+      ...editProgForm.value,
+      nivel:   editNivel.value,
+      alcance: alcanceToString(editAlcanceItems.value),
+    }
+    await svc.updateTarea(editProgTarget.value.itemCode, editProgTarget.value.fecha, payload)
+    Object.assign(editProgTarget.value, payload)
     editProgTarget.value = null
   } finally { editProgSaving.value = false }
 }
@@ -1551,7 +1829,7 @@ function onAsigExcelFile(e: Event) {
   const reader = new FileReader()
   reader.onload = (ev) => {
     try {
-      const wb = XLSX.read(ev.target?.result, { type: 'binary' })
+      const wb = XLSX.read(ev.target?.result, { type: 'array' })
       const ws = wb.Sheets[wb.SheetNames[0]]
       const data = XLSX.utils.sheet_to_json<Record<string, any>>(ws, { defval: '' })
       if (!data.length) { asigXlsxError.value = 'El archivo no contiene datos'; return }
@@ -1562,7 +1840,7 @@ function onAsigExcelFile(e: Event) {
       asigXlsxError.value = 'No se pudo leer el archivo'
     }
   }
-  reader.readAsBinaryString(file)
+  reader.readAsArrayBuffer(file)
 }
 
 async function confirmAsigXlsxImport() {
@@ -1590,13 +1868,19 @@ const xlsxHeaders   = ref<string[]>([])
 const xlsxRows      = ref<Record<string, any>[]>([])
 
 // Map Excel column headers (flexible, case-insensitive) to TradeItem fields
+// Mapea columnas del Excel (nombres exactos de la tabla DB) → campos del TradeItem
 const COLUMN_MAP: Record<string, string> = {
-  codigo: 'codigo', code: 'codigo', cod: 'codigo',
-  nombre: 'nombre', name: 'nombre', producto: 'nombre',
-  idproducto: 'idProducto', id: 'idProducto', idprod: 'idProducto',
-  rubro: 'rubro', grupo: 'grupo', subgrupo: 'subgrupo',
-  clase: 'clase', subclase: 'subclase', mercado: 'mercado',
-  estado: 'estado', pesoneto: 'pesoNeto', peso: 'pesoNeto',
+  idproducto:  'idProducto',
+  nombre:      'nombre',
+  rubro:       'rubro',
+  grupo:       'grupo',
+  subgrupo:    'subgrupo',
+  clase:       'clase',
+  subclase:    'subclase',
+  codigo:      'codigo',
+  mercado:     'mercado',
+  estado:      'estado',
+  pesoneto:    'pesoNeto',
 }
 
 function mapXlsxRow(row: Record<string, any>): Partial<TradeItem> {
@@ -1604,18 +1888,18 @@ function mapXlsxRow(row: Record<string, any>): Partial<TradeItem> {
   for (const [k, v] of Object.entries(row)) {
     const norm = k.toLowerCase().replace(/[^a-z]/g, '')
     const field = COLUMN_MAP[norm]
-    if (field) out[field] = v ?? null
+    if (field) out[field] = (v !== '' && v != null) ? v : null
   }
   return out
 }
 
 function descargarPlantilla() {
   const ws = XLSX.utils.aoa_to_sheet([
-    ['codigo',     'nombre',                            'idProducto', 'rubro', 'grupo',     'subgrupo', 'clase',  'subclase',          'mercado', 'estado', 'pesoNeto'],
-    ['10000698',   'FIDEO CAROZZI MACARRONI BSA 400 GR', 69000,       'A&B',  'ALIMENTOS', 'BASICOS',  'PASTAS', 'CAROZZI,TRATORIA',  'M',        1,        0],
-    ['10000699',   'EJEMPLO PRODUCTO 2',                 '',          'A&B',  'ALIMENTOS', 'BASICOS',  'PASTAS', '',                  'M',        1,        0.5],
+    ['IdProducto', 'Nombre',                          'rubro', 'grupo',     'subgrupo', 'clase',  'subclase',     'codigo',   'mercado', 'Estado', 'PesoNeto'],
+    [24087,        'FIDEO GUSTOSO MOD31 LINGUINE 400G','A&B',  'ALIMENTOS', 'BASICOS',  'PASTAS', 'TRANSITORIOS', '10001038', 'M',        1,        0],
+    [488011,       'VINAGRE ALCOHOL CASTELO TINTO 750ML','A&B','ALIMENTOS', 'BASICOS',  'VINAGRES','TRANSITORIOS','10002396', 'M',        1,        0],
   ])
-  ws['!cols'] = [12, 40, 12, 8, 12, 12, 12, 20, 8, 8, 10].map(w => ({ wch: w }))
+  ws['!cols'] = [12, 42, 8, 12, 12, 12, 14, 12, 8, 8, 10].map(w => ({ wch: w }))
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Competidores')
   XLSX.writeFile(wb, 'plantilla_competidores.xlsx')
@@ -1628,7 +1912,7 @@ function onExcelFile(e: Event) {
   const reader = new FileReader()
   reader.onload = (ev) => {
     try {
-      const wb = XLSX.read(ev.target?.result, { type: 'binary' })
+      const wb = XLSX.read(ev.target?.result, { type: 'array' })
       const ws = wb.Sheets[wb.SheetNames[0]]
       const data = XLSX.utils.sheet_to_json<Record<string, any>>(ws, { defval: '' })
       if (!data.length) { xlsxError.value = 'El archivo no contiene datos'; return }
@@ -1640,7 +1924,7 @@ function onExcelFile(e: Event) {
       xlsxError.value = 'No se pudo leer el archivo. Asegurate de que sea .xlsx o .csv'
     }
   }
-  reader.readAsBinaryString(file)
+  reader.readAsArrayBuffer(file)
 }
 
 async function confirmXlsxImport() {
@@ -1668,12 +1952,15 @@ async function loadTareas() {
 
 onMounted(async () => {
   loadingAsig.value = true
-  const [p, ti, asig] = await Promise.all([
-    svc.getProductos(), svc.getTradeItems(), svc.getAllPlayerSap()
+  const [p, ti, asig, ciud, rts] = await Promise.all([
+    svc.getProductos(), svc.getTradeItems(), svc.getAllPlayerSap(),
+    svc.getCiudades(), svc.getRutas(),
   ])
   productos.value    = p
   tradeItems.value   = ti
   asignaciones.value = asig
+  ciudades.value     = ciud
+  rutas.value        = rts
   loadingAsig.value  = false
   await loadTareas()
 })

@@ -41,6 +41,8 @@ export interface PlayersTask {
   fechaini: string
   fechafin: string
   cartera: number
+  nivel?: string | null    // 'nacional' | 'ciudad' | 'ruta' | 'cliente'
+  alcance?: string | null  // JSON array string
   usuario?: string
   activo?: number
   players1?: string | null
@@ -51,9 +53,35 @@ export interface PlayersTask {
   nombrePlayer3?: string | null
 }
 
+export interface Ruta {
+  code: string
+  name: string
+}
+
+export interface Cliente {
+  code: string
+  name: string
+  city?: string
+}
+
 class CategoriaRelevamientoService {
   async getProductos(): Promise<ProductoSAP[]> {
     const res = await authService.http.get(`${BASE}/productos`)
+    return res.data
+  }
+
+  async getCiudades(): Promise<{ code: string; name: string }[]> {
+    const res = await authService.http.get(`${BASE}/ciudades`)
+    return res.data
+  }
+
+  async getRutas(): Promise<Ruta[]> {
+    const res = await authService.http.get(`${BASE}/rutas`)
+    return res.data
+  }
+
+  async getClientes(q?: string): Promise<Cliente[]> {
+    const res = await authService.http.get(`${BASE}/clientes`, { params: q ? { q } : {} })
     return res.data
   }
 
@@ -114,7 +142,7 @@ class CategoriaRelevamientoService {
     await authService.http.post(`${BASE}/tareas`, data)
   }
 
-  async updateTarea(itemCode: string, fecha: string, data: { activo?: number; fechaini?: string; fechafin?: string; cartera?: number }): Promise<void> {
+  async updateTarea(itemCode: string, fecha: string, data: { activo?: number; fechaini?: string; fechafin?: string; cartera?: number; nivel?: string | null; alcance?: string | null }): Promise<void> {
     await authService.http.patch(`${BASE}/tareas/${encodeURIComponent(itemCode)}/${fecha}`, data)
   }
 
