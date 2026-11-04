@@ -17,6 +17,7 @@ import { EntregasModule } from './entregas/entregas.module';
 import { RelevamientoModule } from './relevamiento/relevamiento.module';
 import { SpaModule } from './spa.module';
 import { BoletasModule } from './boletas/boletas.module';
+import { SurveyModule } from './survey/survey.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { BoletasModule } from './boletas/boletas.module';
     }),
     DatabaseModule,
     BoletasModule,
+    SurveyModule,
     AuthModule,
     EmpleadosModule,
     SalasModule,
