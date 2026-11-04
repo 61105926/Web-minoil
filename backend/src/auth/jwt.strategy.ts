@@ -3,8 +3,8 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { passportJwtSecret } from 'jwks-rsa';
 
-const KEYCLOAK_JWKS_URI = 'https://auth.minoil.com.bo/realms/minoil/protocol/openid-connect/certs';
-const KEYCLOAK_ISSUER   = 'https://auth.minoil.com.bo/realms/minoil';
+const KEYCLOAK_ISSUER   = 'https://auth.minoil.com.bo/realms/Minoil';
+const KEYCLOAK_JWKS_URI = `${KEYCLOAK_ISSUER}/protocol/openid-connect/certs`;
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -38,6 +38,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       codeRegional: payload.code_regional ?? null,
       empId:        payload.empID         ?? null,
       cargo:        payload.cargo         ?? null,
+      phoneNumber:  payload.phone_number  ?? payload.telefono ?? null,
     };
   }
 }

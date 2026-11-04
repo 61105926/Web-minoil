@@ -1,12 +1,12 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Inject } from '@nestjs/common';
 import { DatabaseService } from './database.service';
 import { ConfigService } from '@nestjs/config';
 
 @Controller('database')
 export class DatabaseController {
   constructor(
-    private databaseService: DatabaseService,
-    private configService: ConfigService,
+    @Inject(DatabaseService) private databaseService: DatabaseService,
+    @Inject(ConfigService) private configService: ConfigService,
   ) {}
 
   @Get('test')

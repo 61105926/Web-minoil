@@ -4,6 +4,10 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
+import { initializeFileLogging } from './logging/file-logger';
+import { logHttpErrors } from './logging/http-error-logger';
+
+initializeFileLogging();
 
 async function bootstrap() {
   try {
@@ -11,6 +15,8 @@ async function bootstrap() {
     
     const app = await NestFactory.create<NestExpressApplication>(AppModule);
     console.log('✅ AppModule creado');
+
+    app.use(logHttpErrors);
 
     // Habilitar CORS para permitir peticiones del frontend
     app.enableCors({

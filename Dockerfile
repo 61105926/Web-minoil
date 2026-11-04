@@ -51,10 +51,12 @@ RUN npm install --omit=dev && npm cache clean --force
 # Copiar el backend compilado y el frontend
 COPY --from=backend-builder /app/backend/dist ./dist
 COPY --from=backend-builder /app/backend/public ./public
+COPY --from=backend-builder /app/backend/assets ./assets
 
 # Crear usuario no-root para seguridad
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001 && \
+    mkdir -p /app/logs && \
     chown -R nodejs:nodejs /app
 
 USER nodejs

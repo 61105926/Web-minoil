@@ -1,14 +1,27 @@
-import { Injectable, OnModuleDestroy, Inject } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as hana from '@sap/hana-client';
 
 @Injectable()
-export class DatabaseService implements OnModuleDestroy {
+export class DatabaseService implements OnModuleInit, OnModuleDestroy {
   private connection: any;
 
   constructor(
     @Inject(ConfigService) private configService: ConfigService
   ) {}
+
+  async onModuleInit(): Promise<void> {
+    console.log('🔎 Verificando conexión y acceso a SAP HANA...');
+    try {
+      await this.query('SELECT 1 FROM DUMMY', [], true);
+      console.log('✅ SAP HANA disponible: conexión y consulta verificadas');
+    } catch (error: any) {
+      console.error('❌ SAP HANA no disponible para consultas:', error.message);
+      if (String(error.message).toLowerCase().includes('alter password required')) {
+        console.error('🔑 El usuario de HANA debe cambiar su contraseña. Actualice HANA_PASS y reinicie el backend.');
+      }
+    }
+  }
 
   async connect(): Promise<void> {
     if (this.connection) {
@@ -50,7 +63,7 @@ export class DatabaseService implements OnModuleDestroy {
             this.connection = null;
             reject(err);
           } else {
-            console.log('✅ Conectado a SAP HANA exitosamente');
+            console.log('🔌 Sesión establecida con SAP HANA');
             resolve();
           }
         });

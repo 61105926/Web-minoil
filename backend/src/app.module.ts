@@ -16,6 +16,7 @@ import { RutasModule } from './rutas/rutas.module';
 import { EntregasModule } from './entregas/entregas.module';
 import { RelevamientoModule } from './relevamiento/relevamiento.module';
 import { SpaModule } from './spa.module';
+import { BoletasModule } from './boletas/boletas.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { SpaModule } from './spa.module';
       })],
     }),
     DatabaseModule,
+    BoletasModule,
     AuthModule,
     EmpleadosModule,
     SalasModule,

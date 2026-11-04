@@ -134,6 +134,11 @@ type IconName = 'home' | 'users' | 'calendar' | 'chart' | 'cog' | 'document'
 
 const menuItems: Array<{ label: string; path: string; icon: IconName }> = [
   {
+    label: 'Boletas de pago',
+    path: '/boletas',
+    icon: 'document'
+  },
+  {
     label: 'Dashboard',
     path: '/dashboard',
     icon: 'home'

@@ -268,6 +268,64 @@ CREATE TABLE "EMPLEADOS" (
 
 ## Solución de Problemas
 
+### Boletas de pago
+
+La opción **Boletas de pago** (`/boletas`) consulta los meses disponibles y permite
+visualizar o descargar un PDF basado en la plantilla de nómina. El backend usa:
+
+- `GET /boletas/meses?numero=70000000`: llama a `MINOILDES.RH__API_Date_Consult(?)`.
+- `GET /boletas/pdf?numero=70000000&fecha=202610`: llama a `MINOILDES.RH__API_ConsultaBoleta(?, ?)`
+  y devuelve `application/pdf` con disposición `inline` y caché desactivada.
+
+Temporalmente, estas dos rutas y la pantalla `/boletas` son públicas y no necesitan
+Bearer token. `numero` es el teléfono y `fecha` es `AAAAMM`. La pantalla permite
+ingresar el teléfono; también se puede abrir la URL del PDF directamente en el
+navegador. Si falta el teléfono o tiene un formato inválido, la API devuelve `400`.
+Cualquier persona que conozca un teléfono puede consultar sus boletas mientras
+estas rutas sean públicas. Su formato debe coincidir con el esperado por los procedimientos.
+
+Ambos procedimientos deben existir en la conexión HANA configurada y el usuario
+debe disponer de permiso de ejecución. Las llamadas usan parámetros enlazados.
+Si no hay datos se devuelve `404`; si la consulta falla se devuelve `503` y se
+registra el nombre del procedimiento y código del error, sin resultados salariales
+ni teléfono. La generación PDF conserva los importes que devuelve el procedimiento.
+
+Pruebas locales con datos ficticios (sin consultar nómina real):
+
+```bash
+cd backend
+npm run build
+node --test scripts/test-boletas.cjs
+```
+
+### Logs del backend
+
+Al iniciar el backend, los mensajes de la aplicación y de Nest se muestran en consola
+y se guardan automáticamente en `backend/logs/app-AAAA-MM-DD.log`. Cada entrada
+incluye fecha y hora UTC, nivel y mensaje. La comprobación de HANA se ejecuta al
+arrancar y registra si las consultas funcionan o el motivo del error.
+
+Las respuestas HTTP con error también se registran: método, ruta, código de estado
+y duración (`4xx` como `WARN`, `5xx` como `ERROR`), incluidos rechazos de autenticación
+como `401 Unauthorized`. No se guardan cabeceras, cuerpos ni parámetros de consulta.
+Los mensajes y stacks ejecutados solo en el navegador permanecen en su consola;
+el archivo del backend registra el error HTTP correspondiente si la petición llega
+al servidor.
+
+Se crea un archivo por día UTC y se conservan 14 días. La limpieza se realiza con
+el primer mensaje de cada día. Los archivos no se incluyen en Git ni en la imagen
+Docker. Si falla la escritura, se informa en consola y la aplicación continúa.
+
+Desde la raíz del proyecto puedes seguir el archivo actual con:
+
+```bash
+tail -f "backend/logs/app-$(date -u +%F).log"
+```
+
+Con Docker Compose, los archivos persisten en el volumen `app-logs` al recrear el
+contenedor. Para seguir la salida en consola usa `docker compose logs -f app`.
+`docker compose down -v` elimina también el volumen de logs.
+
 ### Error de conexión a HANA
 
 Verifica:

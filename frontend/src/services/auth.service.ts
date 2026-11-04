@@ -2,7 +2,7 @@ import axios from 'axios'
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:8005')
 
-const KEYCLOAK_BASE   = 'https://auth.minoil.com.bo/realms/minoil/protocol/openid-connect'
+const KEYCLOAK_BASE   = 'https://auth.minoil.com.bo/realms/Minoil/protocol/openid-connect'
 const KEYCLOAK_CLIENT = 'minoil-client'
 
 // ---------- PKCE helpers ----------
