@@ -29,13 +29,13 @@ function integer(value: unknown, field: string): number {
   return Number(value);
 }
 
-/** Normaliza AAAA-MM-DD, DD-MM-AAAA, DD/MM/AAAA o ISO con hora a AAAA-MM-DD; null si no es una fecha. */
+/** Normaliza AAAA-MM-DD, DD-MM-AAAA o DD/MM/AAAA (con hora opcional) a AAAA-MM-DD; null si no es una fecha. */
 export function toIsoDate(value: unknown): string | null {
   const raw = String(value ?? '').trim();
   let match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
   let parts = match ? [match[1], match[2], match[3]] : null;
   if (!parts) {
-    match = raw.match(/^(\d{2})[-/](\d{2})[-/](\d{4})$/);
+    match = raw.match(/^(\d{2})[-/](\d{2})[-/](\d{4})(?:[ T].*)?$/); // admite hora: "DD-MM-AAAA 0:00:00.0"
     parts = match ? [match[3], match[2], match[1]] : null;
   }
   if (!parts) return null;
