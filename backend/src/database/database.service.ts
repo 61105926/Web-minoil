@@ -169,6 +169,36 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  /**
+   * Ejecuta `work` en una conexión propia sin auto-commit, para no mezclar
+   * sentencias con otras peticiones que usan la conexión compartida.
+   */
+  async transaction<T>(work: (query: (sql: string, params?: any[]) => Promise<any[]>) => Promise<T>): Promise<T> {
+    const host = this.configService.get<string>('HANA_HOST');
+    const user = this.configService.get<string>('HANA_USER');
+    const password = this.configService.get<string>('HANA_PASS');
+    if (!host || !user || !password) {
+      throw new Error('Conexión a SAP HANA no disponible - Modo DEMO');
+    }
+
+    const conn = hana.createConnection();
+    const call = (method: string, ...args: any[]) => new Promise<any>((resolve, reject) =>
+      conn[method](...args, (err, result) => (err ? reject(err) : resolve(result))));
+
+    await call('connect', { host, port: this.configService.get<number>('HANA_PORT') || 30015, user, password });
+    try {
+      conn.setAutoCommit(false);
+      const result = await work(async (sql, params = []) => (await call('exec', sql, params)) || []);
+      await call('commit');
+      return result;
+    } catch (error) {
+      await call('rollback').catch(() => undefined);
+      throw error;
+    } finally {
+      await call('disconnect').catch(() => undefined);
+    }
+  }
+
   async disconnect(): Promise<void> {
     if (this.connection) {
       return new Promise((resolve, reject) => {

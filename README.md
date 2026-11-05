@@ -298,6 +298,56 @@ npm run build
 node --test scripts/test-boletas.cjs
 ```
 
+### API compatible con Laravel (pública)
+
+`LegacyApiController` (`backend/src/legacy-api/`) reproduce las rutas del antiguo
+`routes/api.php`, con el mismo prefijo `/api`, los mismos métodos y la misma forma de
+respuesta. No usan Bearer token ni Keycloak. Como `$request->input()`, cada ruta lee
+los parámetros del query string y del cuerpo JSON. Todas las consultas a HANA usan
+parámetros enlazados.
+
+| Método | Ruta | Parámetros | Origen HANA |
+|---|---|---|---|
+| GET | `/api/dateConsult` | `numero` | `RH__API_Date_Consult` |
+| GET | `/api/boleta` | `numero`, `fecha` (AAAAMM) | `RH__API_ConsultaBoleta` → PDF |
+| GET | `/api/vacacion` | `Codigo`, `Empleado`, `Cargo`, `Departamento`, `FechaIngreso`, `FechaSolicitud`, `Estado`, `Observaciones`, `detalle[i][Desde/Hasta/Dias/Turno]` | Genera el PDF de la solicitud |
+| GET | `/api/emp` | `mobile` | `RRHH_Detail_Vacation` |
+| GET | `/api/empleado/info` | `emp_id` | `EMP_INFO_BASICO` |
+| POST | `/api/vacaciones/state` | `id_solicitud`, `estado`, `comentario` | `VAC_ACTUALIZAR_ESTADO` |
+| POST | `/api/vacaciones/add-vacation` | campos de `@PLVCH` | INSERT `BD_MINOIL_PROD."@PLVCH"` (409 si hay fechas duplicadas) |
+| GET | `/api/recomendar-reemplazante` | `empId` | `RH__API_RecomendarReemplazante` |
+| GET | `/api/reemplazante-vacation` | `emp_id` | `EMP_REEMPLAZOS` |
+| POST | `/api/vacaciones/reemplazante/guardar` | `id_solicitud`, `emp_id`, `nombre`, `cargo`, `telefono`, `tipo` | INSERT `VAC_REEMPLAZANTES` |
+| POST | `/api/store-vacation` | `emp_id`, `tipo`, `manager_id`, `detalle[]`, `reemplazantes[]` | INSERT `VAC_SOLICITUD` + detalle + reemplazantes (una transacción) |
+| GET | `/api/vacacion-data-manager` | `manager` | `VACACIONES_POR_MANAGER` |
+| GET | `/api/vacacion-data-empleado` | `emp_id` | `VACACIONES_POR_EMPLEADO` + `VAC_REEMPLAZANTES` |
+| GET | `/api/survey` (también `/survey`) | - | `R030EncuestadetrabajoDev` |
+| GET | `/api/inventario` | `fechai`, `fechaf` (DD-MM-AAAA) | `R015VencimientosYAccionesDev` |
+| POST | `/api/getUserStatus` | `empID` | `RRHH_Clima_Acceso` + `OHEM` |
+| POST | `/api/updateLogin` | `empID`, `login` (0) | UPDATE `RRHH_Clima_Acceso."login"` |
+| POST | `/api/updateFinished` | `empID`, `finished` (false) | UPDATE `RRHH_Clima_Acceso."completo"` |
+| POST | `/api/storeResponses` | `responses[]` | `RRHH_INSERT_RESPONSES` (una transacción) |
+| GET | `/api/products-inventory` | - | `Produccion_Stock_dev2(5)` |
+| GET | `/api/climate-reponse` | - | `RRHH_CLIMA_RESPONSES_DEV` + `RRHH_CLIMA_RESPONSES` |
+
+Alias usados por el frontend `massive-message-whatsapp` (mismo handler que la ruta Laravel):
+`/api/empleado/detalle` = `/api/emp`, `/api/empleado` = `/api/empleado/info`,
+`/api/estado` = `/api/vacaciones/state`, `/api/sap` = `/api/vacaciones/add-vacation`,
+`/api/reemplazante-recomendado` = `/api/recomendar-reemplazante`,
+`/api/reemplazantes` = `/api/reemplazante-vacation`,
+`/api/reemplazante` = `/api/vacaciones/reemplazante/guardar`, `/api/solicitud` = `/api/store-vacation`,
+`/api/manager` = `/api/vacacion-data-manager`, `/api/empleado/solicitudes` = `/api/vacacion-data-empleado`
+y `POST /api/solicitud/pdf` = `GET /api/vacacion` (datos en el cuerpo JSON).
+
+Aún sin migrar (falta el código de Laravel): `/api/mensaje-masivo`, `/api/login`,
+`/api/verify-token` y `/api/clients`.
+
+Pruebas sin HANA (requieren `npm run build`):
+
+```bash
+node --test scripts/test-legacy-api.cjs scripts/test-vacaciones.cjs
+```
+
 ### Logs del backend
 
 Al iniciar el backend, los mensajes de la aplicación y de Nest se muestran en consola

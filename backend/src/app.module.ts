@@ -18,6 +18,8 @@ import { RelevamientoModule } from './relevamiento/relevamiento.module';
 import { SpaModule } from './spa.module';
 import { BoletasModule } from './boletas/boletas.module';
 import { SurveyModule } from './survey/survey.module';
+import { VacacionesModule } from './vacaciones/vacaciones.module';
+import { LegacyApiModule } from './legacy-api/legacy-api.module';
 
 @Module({
   imports: [
@@ -35,6 +37,8 @@ import { SurveyModule } from './survey/survey.module';
     DatabaseModule,
     BoletasModule,
     SurveyModule,
+    VacacionesModule,
+    LegacyApiModule,
     AuthModule,
     EmpleadosModule,
     SalasModule,
