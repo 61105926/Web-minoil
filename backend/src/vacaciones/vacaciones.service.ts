@@ -55,9 +55,10 @@ export class VacacionesService {
 
   private async query(sql: string, params: unknown[], label: string): Promise<Row[]> {
     try {
-      const rows = await this.db.query(sql, params, true);
-      if (!Array.isArray(rows)) throw new Error('Formato de resultado inesperado');
-      return rows;
+      const rows: unknown = await this.db.query(sql, params, true);
+      // Un CALL/UPDATE sin conjunto de resultados devuelve un número (filas afectadas), no un arreglo:
+      // no es un error (p. ej. VAC_ACTUALIZAR_ESTADO).
+      return Array.isArray(rows) ? rows : [];
     } catch (error: any) {
       // No registrar parámetros: contienen datos personales.
       console.error(`[VACACIONES] Falló ${label}; código HANA: ${error.code ?? 'no disponible'}`);
