@@ -221,7 +221,7 @@ export class VacacionesService {
   private validateStore(body: Body) {
     const errors: Record<string, string[]> = {};
     const check = (ok: boolean, field: string, message: string) => { if (!ok) (errors[field] ??= []).push(message); };
-    const str = (v: unknown, max = Infinity) => typeof v === 'string' && v.trim() !== '' && v.length <= max;
+    const str = (v: unknown, max = Infinity) => (typeof v === 'string' || typeof v === 'number') && String(v).trim() !== '' && String(v).length <= max;
     const optStr = (v: unknown) => isBlank(v) || typeof v === 'string';
 
     check(str(body.emp_id, 20), 'emp_id', 'Obligatorio, texto de máximo 20 caracteres.');
