@@ -153,6 +153,13 @@ export class LegacyApiController {
     return this.vacaciones.getVacacionesPorManager(input(req).manager);
   }
 
+  /** Registros de vacación del empleado en SAP (@PLVCH), para mostrar el N° de SAP en la boleta. */
+  @Get('vacaciones/sap')
+  @Header('Cache-Control', 'no-store')
+  getVacacionesSap(@Req() req: Request) {
+    return this.vacaciones.getVacacionesSap(input(req).emp_id);
+  }
+
   @Get(['vacacion-data-empleado', 'empleado/solicitudes'])
   @Header('Cache-Control', 'no-store')
   getVacacionesPorEmpleado(@Req() req: Request) {

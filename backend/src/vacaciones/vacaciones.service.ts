@@ -283,6 +283,21 @@ export class VacacionesService {
     }
   }
 
+  /** Filas de @PLVCH del empleado (más recientes primero). `docvac` es el N° que imprime el R-300. */
+  async getVacacionesSap(empId: unknown) {
+    const id = integer(empId, 'emp_id');
+    const rows = await this.query(
+      `SELECT TOP 200 "Code", "U_DOCVAC", "U_FECHA", "U_COMMENT", "U_FROMDATE", "U_TODATE", "U_NUMDIAS", "U_ESTADO"
+       FROM "BD_MINOIL_PROD"."@PLVCH" WHERE "U_EMPID" = ? ORDER BY "Code" DESC`, [id], 'consulta @PLVCH');
+    return {
+      success: true,
+      data: rows.map((r) => ({
+        code: r.Code, docvac: r.U_DOCVAC, fecha: r.U_FECHA, comment: r.U_COMMENT,
+        fromdate: r.U_FROMDATE, todate: r.U_TODATE, numdias: r.U_NUMDIAS, estado: r.U_ESTADO,
+      })),
+    };
+  }
+
   async addVacation(input: Body) {
     const data: Row = { ...input };
     for (const field of SAP_DATE_FIELDS) {
