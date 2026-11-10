@@ -5,12 +5,6 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     {
-      path: '/boletas',
-      name: 'Boletas',
-      component: () => import('@/views/BoletasView.vue'),
-      meta: { requiresAuth: false }
-    },
-    {
       path: '/dashboard',
       name: 'Dashboard',
       component: () => import('@/views/Dashboard.vue'),

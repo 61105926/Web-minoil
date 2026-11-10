@@ -270,16 +270,14 @@ CREATE TABLE "EMPLEADOS" (
 
 ### Boletas de pago
 
-La opción **Boletas de pago** (`/boletas`) consulta los meses disponibles y permite
-visualizar o descargar un PDF basado en la plantilla de nómina. El backend usa:
+El backend expone las boletas (sin pantalla en este frontend). Usa:
 
 - `GET /boletas/meses?numero=70000000`: llama a `MINOILDES.RH__API_Date_Consult(?)`.
 - `GET /boletas/pdf?numero=70000000&fecha=202610`: llama a `MINOILDES.RH__API_ConsultaBoleta(?, ?)`
   y devuelve `application/pdf` con disposición `inline` y caché desactivada.
 
-Temporalmente, estas dos rutas y la pantalla `/boletas` son públicas y no necesitan
-Bearer token. `numero` es el teléfono y `fecha` es `AAAAMM`. La pantalla permite
-ingresar el teléfono; también se puede abrir la URL del PDF directamente en el
+Temporalmente, estas rutas son públicas y no necesitan
+Bearer token. `numero` es el teléfono y `fecha` es `AAAAMM`. Se puede abrir la URL del PDF directamente en el
 navegador. Si falta el teléfono o tiene un formato inválido, la API devuelve `400`.
 Cualquier persona que conozca un teléfono puede consultar sus boletas mientras
 estas rutas sean públicas. Su formato debe coincidir con el esperado por los procedimientos.

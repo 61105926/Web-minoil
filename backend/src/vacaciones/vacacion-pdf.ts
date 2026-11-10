@@ -9,25 +9,28 @@ export interface SolicitudVacacion {
   Departamento: string;
   FechaIngreso: string;
   FechaSolicitud: string;
-  detalle: { Desde: string; Hasta: string; Dias: number; Turno?: string | null }[];
+  detalle: { Desde: string; Hasta: string; Dias: number; Turno?: string | null; Tipo?: string | null }[];
   Estado: string;
+  Tipo?: string | null;
   Observaciones?: string | null;
 }
 
 const isText = (v: unknown) => typeof v === 'string' && v.trim() !== '';
+const optionalText = (v: unknown) => v == null || typeof v === 'string';
 
-/** Valida el cuerpo con las mismas reglas que la versión anterior en Laravel. */
+/** Valida el cuerpo con las mismas reglas que la versión anterior en Laravel (Tipo es opcional). */
 export function parseSolicitud(body: any): SolicitudVacacion {
   const fail = (field: string) => { throw new BadRequestException(`El campo ${field} es obligatorio o inválido.`); };
   for (const field of ['Codigo', 'Empleado', 'Cargo', 'Departamento', 'Estado']) if (!isText(body?.[field])) fail(field);
   for (const field of ['FechaIngreso', 'FechaSolicitud']) if (!toIsoDate(body[field])) fail(field);
-  if (body.Observaciones != null && typeof body.Observaciones !== 'string') fail('Observaciones');
+  for (const field of ['Observaciones', 'Tipo']) if (!optionalText(body[field])) fail(field);
   if (!Array.isArray(body.detalle) || !body.detalle.length) fail('detalle');
   body.detalle.forEach((d: any, i: number) => {
     if (!toIsoDate(d?.Desde)) fail(`detalle.${i}.Desde`);
     if (!toIsoDate(d?.Hasta)) fail(`detalle.${i}.Hasta`);
     if (d?.Dias === '' || d?.Dias == null || Number.isNaN(Number(d.Dias))) fail(`detalle.${i}.Dias`);
-    if (d?.Turno != null && typeof d.Turno !== 'string') fail(`detalle.${i}.Turno`);
+    if (!optionalText(d?.Turno)) fail(`detalle.${i}.Turno`);
+    if (!optionalText(d?.Tipo)) fail(`detalle.${i}.Tipo`);
   });
   return body;
 }
@@ -37,92 +40,121 @@ const ddmmyyyy = (value: string) => {
   return iso ? iso.split('-').reverse().join('/') : value;
 };
 
+const ESTADOS: Record<string, string> = {
+  APROBADO: 'Autorizado', AUTORIZADO: 'Autorizado', RECHAZADO: 'Rechazado',
+  'PRE-APROBADO': 'Pre-aprobado', PROCESO: 'En proceso', PENDIENTE: 'Pendiente',
+};
+const estadoLabel = (estado: string) => ESTADOS[estado.trim().toUpperCase()] ?? estado;
+
+const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+
+/** "Vacación" por defecto; medio día se indica como "Vacación (Tarde)". */
+function tipoLabel(s: SolicitudVacacion, d: SolicitudVacacion['detalle'][number]): string {
+  const tipo = d.Tipo?.trim() || s.Tipo?.trim() || 'Vacación';
+  const turno = d.Turno?.trim().toUpperCase();
+  return turno === 'MAÑANA' || turno === 'TARDE' ? `${tipo} (${capitalize(turno)})` : tipo;
+}
+
 export function pdfFileName(solicitud: SolicitudVacacion): string {
   return `SolicitudVacacion_${solicitud.Empleado.replace(/[^A-Za-z0-9]/g, '_')}.pdf`;
 }
 
-/** Formulario A4 vertical de solicitud de vacación. */
+/** Formulario R-300 "Solicitud de vacación" en A4 vertical. */
 export function renderVacacionPdf(s: SolicitudVacacion, logo?: Uint8Array): Buffer {
   const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
-  const left = 15;
-  const width = doc.internal.pageSize.getWidth() - 30;
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const center = pageWidth / 2;
   doc.setProperties({ title: `Solicitud de vacación - ${s.Empleado}`, author: 'MINOIL' });
-  doc.setLineWidth(0.3);
+  doc.setTextColor(0);
+  doc.setDrawColor(0);
 
-  const write = (content: string, x: number, y: number, bold = false, size = 9,
+  const write = (content: string, x: number, y: number, bold = false, size = 10,
     align: 'left' | 'center' | 'right' = 'left') => {
     doc.setFont('helvetica', bold ? 'bold' : 'normal');
     doc.setFontSize(size);
     doc.text(content, x, y, { align });
   };
+  /** Etiqueta en negrita seguida de su valor. */
+  const field = (label: string, value: string, x: number, y: number, valueX?: number) => {
+    write(label, x, y, true);
+    write(value, valueX ?? x + doc.getTextWidth(label) + 4, y);
+  };
+  const border = () => {
+    doc.setLineWidth(0.2);
+    doc.setLineDashPattern([0.6, 0.6], 0);
+    doc.rect(10, 10, pageWidth - 20, pageHeight - 20);
+    doc.setLineDashPattern([], 0);
+  };
 
-  if (logo) doc.addImage(logo, 'PNG', left, 10, 30, 15);
-  write('SOLICITUD DE VACACIÓN', left + width / 2, 20, true, 14, 'center');
-  write(`Código: ${s.Codigo}`, left + width, 15, false, 9, 'right');
-  write(`Fecha de solicitud: ${ddmmyyyy(s.FechaSolicitud)}`, left + width, 20, false, 9, 'right');
+  // Encabezado
+  if (logo) doc.addImage(logo, 'PNG', 15, 15, 45, 9);
+  write('SOLICITUD DE VACACION', center, 21, true, 14, 'center');
+  write('N°', center - 3, 29, true, 10, 'right');
+  write(s.Codigo, center - 1, 29);
+  write('R-300', pageWidth - 28, 18, false, 10, 'center');
+  write('V0 - 16-08-17', pageWidth - 28, 23, false, 10, 'center');
 
   // Datos del empleado
-  let y = 32;
-  const rows: [string, string][] = [
-    ['Empleado', s.Empleado], ['Cargo', s.Cargo], ['Departamento', s.Departamento],
-    ['Fecha de ingreso', ddmmyyyy(s.FechaIngreso)], ['Estado', s.Estado],
-  ];
-  for (const [label, value] of rows) {
-    doc.rect(left, y, 45, 8);
-    doc.rect(left + 45, y, width - 45, 8);
-    write(label, left + 2, y + 5.5, true);
-    write(value, left + 47, y + 5.5);
-    y += 8;
-  }
+  field('Nombre y Apellido :', s.Empleado, 17, 47);
+  field('Cargo :', s.Cargo, 17, 58, 36);
+  field('Departamento :', s.Departamento, 95, 58, 125);
+  field('Fecha de Ingreso :', ddmmyyyy(s.FechaIngreso), 17, 75);
 
-  // Detalle de fechas
-  y += 8;
-  write('DETALLE DE LA SOLICITUD', left, y, true, 10);
-  y += 3;
-  const cols = [{ title: 'Desde', w: 45 }, { title: 'Hasta', w: 45 }, { title: 'Turno', w: width - 120 }, { title: 'Días', w: 30 }];
-  const row = (values: string[], bold: boolean) => {
-    if (y > 260) { doc.addPage(); y = 20; }
-    let x = left;
-    cols.forEach((col, i) => {
-      if (bold) { doc.setFillColor(230, 230, 230); doc.rect(x, y, col.w, 8, 'FD'); } else doc.rect(x, y, col.w, 8);
-      write(values[i], x + col.w / 2, y + 5.5, bold, 9, 'center');
-      x += col.w;
-    });
-    y += 8;
-  };
-  row(cols.map((c) => c.title), true);
-  let total = 0;
+  // Detalle
+  write('Detalle solicitud', center, 99, true, 13, 'center');
+  const cols: { title: string; x: number; align: 'left' | 'center' }[] = [
+    { title: 'FECHA SOLICITUD', x: 33, align: 'center' },
+    { title: 'DESDE', x: 67, align: 'center' },
+    { title: 'HASTA', x: 96, align: 'center' },
+    { title: 'DIAS', x: 122, align: 'center' },
+    { title: 'TIPO', x: 134, align: 'left' },
+    { title: 'ESTADO', x: 176, align: 'center' },
+  ];
+  const lineFrom = 19;
+  const lineTo = 190;
+  let y = 118;
+  cols.forEach((c) => write(c.title, c.x, y, true, 10, c.align));
+  doc.setLineWidth(0.5);
+  doc.line(lineFrom, y + 2, lineTo, y + 2);
+  y += 10;
+
+  const estado = estadoLabel(s.Estado);
   for (const d of s.detalle) {
-    total += Number(d.Dias);
-    row([ddmmyyyy(d.Desde), ddmmyyyy(d.Hasta), d.Turno || 'COMPLETO', String(Number(d.Dias))], false);
+    if (y > pageHeight - 70) { border(); doc.addPage(); y = 25; }
+    const values = [ddmmyyyy(s.FechaSolicitud), ddmmyyyy(d.Desde), ddmmyyyy(d.Hasta),
+      Number(d.Dias).toFixed(2), tipoLabel(s, d), estado];
+    cols.forEach((c, i) => write(values[i], c.x, y, false, 10, c.align));
+    y += 8;
   }
-  doc.rect(left, y, width - 30, 8);
-  doc.rect(left + width - 30, y, 30, 8);
-  write('TOTAL DÍAS', left + width - 32, y + 5.5, true, 9, 'right');
-  write(String(total), left + width - 15, y + 5.5, true, 9, 'center');
-  y += 16;
+  doc.setLineWidth(0.5);
+  doc.line(lineFrom, y - 2, lineTo, y - 2);
 
   // Observaciones
-  write('OBSERVACIONES', left, y, true, 10);
-  y += 3;
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  const lines: string[] = doc.splitTextToSize(s.Observaciones?.trim() || '-', width - 4);
-  const height = Math.max(16, lines.length * 4.5 + 6);
-  doc.rect(left, y, width, height);
-  doc.text(lines, left + 2, y + 5.5);
-  y += height;
+  y += 10;
+  write('Observaciones:', 16, y, true, 11);
+  const observaciones = s.Observaciones?.trim();
+  if (observaciones) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    const lines: string[] = doc.splitTextToSize(observaciones, pageWidth - 36);
+    doc.text(lines, 18, y + 7);
+    y += 7 + lines.length * 5;
+  }
 
   // Firmas
-  y = Math.max(y + 35, 250);
-  if (y > 280) { doc.addPage(); y = 60; }
-  const signatures = ['Solicitante', 'Inmediato superior', 'Recursos Humanos'];
-  const slot = width / signatures.length;
+  y = Math.max(y + 40, 165);
+  if (y > pageHeight - 25) { border(); doc.addPage(); y = 60; }
+  const signatures = ['Solicitante', 'Jefe de Area', 'Responsable de RRHH', 'Reemplazante'];
+  const left = 15;
+  const slot = (pageWidth - 2 * left) / signatures.length;
+  doc.setLineWidth(0.3);
   signatures.forEach((label, i) => {
     const x = left + slot * i;
-    doc.line(x + 8, y, x + slot - 8, y);
-    write(label, x + slot / 2, y + 5, true, 9, 'center');
+    doc.line(x + 2, y, x + slot - 2, y);
+    write(label, x + slot / 2, y + 5, true, 10, 'center');
   });
 
+  border();
   return Buffer.from(doc.output('arraybuffer'));
 }

@@ -42,7 +42,9 @@ export function detalleFromQuery(url: string): Input[] | undefined {
   return items.length ? items.filter(Boolean) : undefined;
 }
 
-const logo = () => readFileSync(join(__dirname, '..', '..', 'assets', 'boleta-logo.png'));
+const asset = (name: string) => readFileSync(join(__dirname, '..', '..', 'assets', name));
+const logo = () => asset('boleta-logo.png');
+const vacacionLogo = () => asset('vacacion-logo.png');
 
 function pdfFile(pdf: Buffer, fileName: string) {
   return new StreamableFile(pdf, { type: 'application/pdf', disposition: `inline; filename="${fileName}"`, length: pdf.length });
@@ -86,7 +88,7 @@ export class LegacyApiController {
     const data = input(req);
     if (!Array.isArray(data.detalle)) data.detalle = detalleFromQuery(req.originalUrl) ?? data.detalle;
     const solicitud = parseSolicitud(data);
-    return pdfFile(renderVacacionPdf(solicitud, logo()), pdfFileName(solicitud));
+    return pdfFile(renderVacacionPdf(solicitud, vacacionLogo()), pdfFileName(solicitud));
   }
 
   @Post('solicitud/pdf')
