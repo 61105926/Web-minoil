@@ -296,9 +296,11 @@ export class VacacionesService {
     if (fechas.length) {
       const registros = await this.query(
         `SELECT "U_COMMENT" FROM "BD_MINOIL_PROD"."@PLVCH"
-         WHERE "U_EMPID" = ? AND "U_ESTADO" != 'R' AND "U_FROMDATE" <= ? AND "U_TODATE" >= ?
+         WHERE "U_EMPID" = ? AND "U_ESTADO" != 'R'
          AND (${fechas.map(() => `"U_COMMENT" LIKE '%' || ? || '%'`).join(' OR ')})`,
-        [data.EMPID, data.TODATE, data.FROMDATE, ...fechas], 'duplicados @PLVCH');
+        // Sin filtrar por U_FROMDATE/U_TODATE: en SAP esas columnas son solo el primer periodo
+        // (los demás van en FROMDATE1..3), así que una fecha repetida en otro periodo se perdería.
+        [data.EMPID, ...fechas], 'duplicados @PLVCH');
       if (registros.length) {
         const duplicadas = fechas.filter((f) => registros.some((r) => String(r.U_COMMENT ?? '').includes(f)));
         throw new ConflictException({
