@@ -1,1190 +1,665 @@
 <template>
   <MainLayout>
-    <div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      <!-- Fase: Seleccionar Sala -->
-      <div v-if="fase === 'seleccionar-sala'" class="min-h-screen flex items-center justify-center p-4">
-        <div v-if="loadingSalas" class="text-center">
-          <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-          <p class="text-gray-600 dark:text-gray-400 text-lg">Cargando salas...</p>
+    <div class="mx-auto max-w-2xl pb-28">
+      <!-- Encabezado -->
+      <header class="mb-5">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Relevamiento Impostor</h1>
+            <p v-if="sala" class="mt-0.5 truncate text-sm font-medium text-blue-600 dark:text-blue-400">{{ nombreSala }}</p>
+            <p v-else class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">Conteo de stock en sala y bodega</p>
+          </div>
+          <div v-if="enProgreso" class="shrink-0 text-right">
+            <button
+              v-if="!confirmarDescarte"
+              type="button"
+              class="rounded-lg px-3 py-1.5 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-red-600 dark:text-gray-400 dark:hover:bg-gray-800"
+              @click="confirmarDescarte = true"
+            >Descartar</button>
+            <div v-else class="flex items-center gap-2 text-sm">
+              <span class="text-gray-600 dark:text-gray-300">¿Descartar el conteo?</span>
+              <button type="button" class="rounded-lg bg-red-600 px-3 py-1.5 font-semibold text-white hover:bg-red-700" @click="reiniciar">Sí</button>
+              <button type="button" class="rounded-lg px-3 py-1.5 font-semibold text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800" @click="confirmarDescarte = false">No</button>
+            </div>
+          </div>
         </div>
-        <RoomSelectorModal 
-          v-else
-          :open="true" 
-          :rooms="salasDisponibles" 
-          @select="handleSeleccionarSala" 
-          @close="() => {}" 
+
+        <!-- Pasos -->
+        <ol v-if="pasoActual > 0" class="mt-4 grid grid-cols-4 gap-1.5" aria-label="Progreso">
+          <li v-for="(paso, i) in PASOS" :key="paso">
+            <div class="h-1.5 rounded-full" :class="i + 1 <= pasoActual ? 'bg-blue-600 dark:bg-blue-500' : 'bg-gray-200 dark:bg-gray-700'"></div>
+            <p class="mt-1 truncate text-[11px] font-medium" :class="i + 1 === pasoActual ? 'text-blue-700 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'">{{ paso }}</p>
+          </li>
+        </ol>
+      </header>
+
+      <!-- 1. Seleccionar sala -->
+      <section v-if="fase === 'seleccionar-sala'" class="space-y-4">
+        <div
+          v-if="borradorPendiente"
+          class="rounded-2xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-700 dark:bg-amber-900/30"
+        >
+          <p class="font-semibold text-amber-900 dark:text-amber-200">Tienes un conteo sin terminar</p>
+          <p class="mt-1 text-sm text-amber-800 dark:text-amber-300">
+            {{ nombreDeSala(borradorPendiente.sala) }} · {{ resumenBorrador }} · {{ haceCuanto(borradorPendiente.actualizado) }}
+          </p>
+          <div class="mt-3 flex gap-2">
+            <Button class="flex-1" @click="continuarBorrador">Continuar conteo</Button>
+            <Button variant="outline" class="flex-1" @click="descartarBorrador">Descartar</Button>
+          </div>
+        </div>
+
+        <div v-if="loadingSalas" class="flex flex-col items-center py-16 text-gray-500 dark:text-gray-400">
+          <span class="mb-3 h-10 w-10 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600"></span>
+          Cargando salas...
+        </div>
+        <div v-else-if="errorSalas" class="rounded-2xl border border-red-200 bg-red-50 p-6 text-center dark:border-red-800 dark:bg-red-900/30">
+          <p class="font-semibold text-red-700 dark:text-red-300">No se pudieron cargar las salas</p>
+          <Button class="mt-3" @click="cargarSalas">Reintentar</Button>
+        </div>
+        <template v-else>
+          <p class="text-sm text-gray-600 dark:text-gray-400">Elige la sala donde harás el conteo.</p>
+          <SelectorSala :salas="salasDisponibles" @select="seleccionarSala" />
+        </template>
+      </section>
+
+      <!-- Cargando productos -->
+      <section v-else-if="fase === 'cargando-productos'" class="flex flex-col items-center py-20 text-gray-500 dark:text-gray-400">
+        <span class="mb-3 h-10 w-10 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600"></span>
+        Cargando productos de la sala...
+      </section>
+
+      <!-- 2. Seleccionar productos -->
+      <section v-else-if="fase === 'seleccionar-productos'" class="space-y-3">
+        <div class="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+          <div class="space-y-3 border-b border-gray-200 p-4 dark:border-gray-700">
+            <p class="text-sm text-gray-600 dark:text-gray-400">Marca los productos que vas a contar.</p>
+            <input
+              v-model="busquedaProducto"
+              type="search"
+              autocomplete="off"
+              placeholder="Buscar producto"
+              aria-label="Buscar producto"
+              class="h-11 w-full rounded-xl border border-gray-300 bg-white px-4 text-base text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 dark:focus:ring-blue-900"
+            />
+            <div class="flex items-center justify-between text-sm">
+              <span class="font-medium text-gray-700 dark:text-gray-300">{{ seleccionados.length }} de {{ productosBase.length }} seleccionados</span>
+              <div class="flex gap-1">
+                <button type="button" class="rounded-lg px-2.5 py-1 font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-gray-700" @click="marcarFiltrados(true)">Todos</button>
+                <button type="button" class="rounded-lg px-2.5 py-1 font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700" @click="marcarFiltrados(false)">Ninguno</button>
+              </div>
+            </div>
+          </div>
+          <ul class="max-h-[55vh] divide-y divide-gray-100 overflow-y-auto dark:divide-gray-700">
+            <li v-for="producto in productosFiltrados" :key="producto.id">
+              <label class="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                <input
+                  type="checkbox"
+                  class="h-5 w-5 shrink-0 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+                  :checked="seleccionados.includes(producto.id)"
+                  @change="toggleProducto(producto.id)"
+                />
+                <span class="min-w-0 flex-1">
+                  <span class="block font-semibold text-gray-900 dark:text-gray-100">{{ producto.item }}</span>
+                  <span class="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                    {{ producto.lotes.length }} lote{{ producto.lotes.length === 1 ? '' : 's' }}
+                    <span
+                      v-if="alertaVencimiento(producto)"
+                      class="rounded-full px-2 py-0.5 font-semibold"
+                      :class="alertaVencimiento(producto) === 'vencido'
+                        ? 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300'
+                        : 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300'"
+                    >{{ alertaVencimiento(producto) === 'vencido' ? 'Lote vencido' : 'Vence pronto' }}</span>
+                  </span>
+                </span>
+              </label>
+            </li>
+            <li v-if="productosFiltrados.length === 0" class="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+              Ningún producto coincide con "{{ busquedaProducto }}"
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 3. Conteo en sala / 5. Conteo en bodega -->
+      <section v-else-if="(fase === 'sala' || fase === 'bodega') && productoActual" class="space-y-4">
+        <div class="flex items-center justify-between text-sm">
+          <span class="font-semibold text-gray-700 dark:text-gray-300">
+            {{ fase === 'sala' ? 'Conteo en sala' : 'Conteo en bodega' }}
+          </span>
+          <span class="text-gray-500 dark:text-gray-400">Producto {{ indexActual + 1 }} de {{ productos.length }}</span>
+        </div>
+        <div class="h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+          <div
+            class="h-full rounded-full bg-blue-600 transition-all dark:bg-blue-500"
+            :style="{ width: `${((indexActual + (productoCompleto ? 1 : 0)) / productos.length) * 100}%` }"
+          ></div>
+        </div>
+
+        <div class="rounded-2xl bg-blue-600 p-4 text-white shadow-sm dark:bg-blue-700">
+          <p class="text-xs font-semibold uppercase tracking-wide text-blue-100">Producto</p>
+          <p class="mt-0.5 text-lg font-bold leading-tight">{{ productoActual.item }}</p>
+          <p class="mt-1 font-mono text-xs text-blue-100">{{ productoActual.codigoProducto }}</p>
+        </div>
+
+        <ConteoLotes
+          :producto="productoActual"
+          :modo="fase"
+          :cantidades="(fase === 'sala' ? conteoSala : conteoBodega)[productoActual.id] ?? {}"
+          :referencia="fase === 'bodega' ? { label: 'Contado en sala', valores: conteoSala[productoActual.id] ?? {} } : undefined"
+          @update="(idx, valor) => setCantidad(fase === 'sala' ? conteoSala : conteoBodega, idx, valor)"
+          @submit="siguiente"
         />
-      </div>
+      </section>
 
-      <!-- Fase: Cargando Productos -->
-      <div v-if="fase === 'cargando-productos'" class="min-h-screen flex items-center justify-center p-4">
-        <div class="text-center">
-          <div class="inline-block animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mb-6"></div>
-          <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Cargando productos...</h2>
-          <p class="text-gray-600 dark:text-gray-400">{{ salaSeleccionada }}</p>
-          <p class="text-sm text-gray-500 dark:text-gray-500 mt-2">Por favor espera</p>
-        </div>
-      </div>
-
-      <!-- Fase: Seleccionar Productos -->
-      <div v-else-if="fase === 'seleccionar-productos'" class="min-h-screen p-4 pb-8">
-        <div class="max-w-4xl mx-auto">
-          <div class="text-center mb-6">
-            <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl shadow-lg mb-4">
-              <svg class="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-              </svg>
-            </div>
-            <h1 class="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-1 leading-tight">Seleccionar Productos</h1>
-            <p class="text-sm text-gray-600 dark:text-gray-400 font-medium">{{ salaSeleccionada }}</p>
+      <!-- 4. ¿Tiene bodega? -->
+      <section v-else-if="fase === 'pregunta-bodega'" class="space-y-4">
+        <div class="rounded-2xl border border-gray-200 bg-white p-6 text-center shadow-sm dark:border-gray-700 dark:bg-gray-800">
+          <div class="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/50">
+            <svg class="h-7 w-7 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
           </div>
-
-          <Card class="bg-white dark:bg-gray-800 shadow-2xl border-0 overflow-hidden">
-            <div class="bg-gradient-to-br from-blue-600 via-blue-600 to-blue-700 text-white pb-6 pt-6 px-5">
-              <h2 class="text-xl font-bold text-center">Selecciona los productos para reposición</h2>
-              <p class="text-blue-100 text-sm mt-2 text-center font-medium">{{ productosSeleccionados.size }} de {{ productosBase.length }} seleccionados</p>
-            </div>
-            <div class="p-6">
-              <div class="space-y-3 max-h-96 overflow-y-auto">
-                <div
-                  v-for="producto in productosBase"
-                  :key="producto.id"
-                  class="flex items-start gap-4 p-4 rounded-xl border-2 transition-all"
-                  :class="productosSeleccionados.has(producto.id)
-                    ? 'bg-blue-50 dark:bg-blue-900 border-blue-500 dark:border-blue-400'
-                    : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-600'"
-                >
-                  <input
-                    type="checkbox"
-                    :id="`producto-${producto.id}`"
-                    :checked="productosSeleccionados.has(producto.id)"
-                    @change="toggleProducto(producto.id)"
-                    class="mt-1 w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
-                  />
-                  <label
-                    :for="`producto-${producto.id}`"
-                    class="flex-1 cursor-pointer"
-                  >
-                    <p class="font-bold text-gray-900 dark:text-gray-100 text-base">{{ producto.item }}</p>
-                    <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">{{ producto.lotes.length }} lote(s)</p>
-                  </label>
-                </div>
-              </div>
-
-              <div class="mt-6 flex gap-3">
-                <Button
-                  @click="fase = 'seleccionar-sala'"
-                  variant="outline"
-                  class="flex-1 h-12 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                >
-                  Volver
-                </Button>
-                <Button
-                  @click="iniciarReposicion"
-                  :disabled="productosSeleccionados.size === 0"
-                  class="flex-1 h-12 bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:opacity-90 font-bold shadow-lg disabled:opacity-50"
-                >
-                  Continuar ({{ productosSeleccionados.size }})
-                </Button>
-              </div>
-            </div>
-          </Card>
-        </div>
-      </div>
-
-      <!-- Fase: Conteo en Sala -->
-      <div v-else-if="fase === 'sala'" class="min-h-screen p-4 pb-8">
-        <div v-if="loadingProductos" class="max-w-2xl mx-auto flex items-center justify-center min-h-screen">
-          <div class="text-center">
-            <p class="text-gray-600 dark:text-gray-400 text-lg">Cargando productos...</p>
+          <p class="text-sm text-gray-500 dark:text-gray-400">Conteo en sala completo · {{ productos.length }} productos</p>
+          <h2 class="mt-2 text-xl font-bold text-gray-900 dark:text-gray-100">¿Esta sala tiene bodega?</h2>
+          <div class="mt-5 grid gap-3">
+            <Button class="h-14 text-base font-bold" @click="responderBodega(true)">Sí, contar bodega</Button>
+            <Button variant="outline" class="h-14 text-base font-bold" @click="responderBodega(false)">No tiene bodega</Button>
           </div>
         </div>
-        <div v-else-if="productosParaReposicion.length === 0" class="max-w-2xl mx-auto flex items-center justify-center min-h-screen">
-          <div class="text-center">
-            <p class="text-red-600 dark:text-red-400 text-lg">No se encontraron productos para esta sala</p>
-            <Button @click="fase = 'seleccionar-sala'" class="mt-4">Volver a seleccionar sala</Button>
+      </section>
+
+      <!-- 6. Resumen -->
+      <section v-else-if="fase === 'resumen'" class="space-y-4">
+        <div
+          class="flex items-start gap-3 rounded-2xl border p-4"
+          :class="{
+            'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/30': estadoGuardado === 'pendiente' || estadoGuardado === 'guardando',
+            'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/30': estadoGuardado === 'guardado',
+            'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/30': estadoGuardado === 'error',
+          }"
+          role="status"
+        >
+          <span v-if="estadoGuardado === 'guardando'" class="mt-0.5 h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-blue-200 border-t-blue-600"></span>
+          <div class="min-w-0 flex-1 text-sm">
+            <template v-if="estadoGuardado === 'pendiente'">
+              <p class="font-semibold text-blue-900 dark:text-blue-200">Revisa el conteo antes de guardarlo</p>
+              <p class="mt-0.5 text-blue-800 dark:text-blue-300">Todavía no se guardó en el sistema.</p>
+            </template>
+            <p v-else-if="estadoGuardado === 'guardando'" class="font-semibold text-blue-900 dark:text-blue-200">Guardando conteo...</p>
+            <template v-else-if="estadoGuardado === 'guardado'">
+              <p class="font-semibold text-green-800 dark:text-green-200">Conteo guardado</p>
+              <p class="mt-0.5 text-green-700 dark:text-green-300">{{ registros.length }} registros registrados en el sistema.</p>
+            </template>
+            <template v-else>
+              <p class="font-semibold text-red-800 dark:text-red-200">No se pudo guardar</p>
+              <p class="mt-0.5 text-red-700 dark:text-red-300">{{ errorGuardado }} Tu conteo sigue guardado en este dispositivo.</p>
+            </template>
           </div>
         </div>
-        <div v-else class="max-w-2xl mx-auto">
-          <div class="text-center mb-6">
-            <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl shadow-lg mb-4">
-              <svg class="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-              </svg>
-            </div>
-            <h1 class="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-1 leading-tight">Reposición Minoil</h1>
-            <p class="text-sm text-gray-600 dark:text-gray-400 font-medium">{{ salaSeleccionada }}</p>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Total sala</p>
+            <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">{{ totalSala }}</p>
           </div>
-
-          <Card className="bg-white dark:bg-gray-800 shadow-2xl border-0 overflow-hidden">
-            <div class="bg-gradient-to-br from-blue-600 via-blue-600 to-blue-700 text-white pb-6 pt-6 px-5">
-              <h2 class="text-xl font-bold text-center">{{ salaSeleccionada }}</h2>
-              <p class="text-blue-100 text-sm mt-2 text-center font-medium">Producto {{ indexActual + 1 }}/{{ productosParaReposicion.length || 0 }}</p>
-            </div>
-            <div class="space-y-5 pt-6 px-5 pb-6">
-              <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800 p-4 rounded-2xl border-2 border-blue-200 dark:border-blue-700 shadow-sm">
-                <div class="flex items-start gap-3">
-                  <div class="bg-white dark:bg-gray-700 p-2 rounded-lg shadow-sm">
-                    <svg class="h-5 w-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                    </svg>
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <p class="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">PRODUCTO</p>
-                    <p class="text-gray-900 dark:text-gray-100 font-bold text-base leading-tight">{{ itemActual.item }}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div class="space-y-4">
-                <p class="text-sm font-bold text-gray-900 dark:text-gray-100 text-center">Ingresa cantidad por lote</p>
-                <div class="grid grid-cols-1 gap-4">
-                  <template v-for="(lote, loteIdx) in itemActual.lotes" :key="loteIdx">
-                    <div
-                      v-if="lote.lote && lote.lote.trim() !== ''"
-                      class="bg-blue-50 dark:bg-blue-900 p-4 rounded-xl border-2 border-blue-200 dark:border-blue-700"
-                    >
-                      <div class="grid grid-cols-2 gap-3 mb-3">
-                        <div>
-                          <div class="flex items-center gap-2 mb-1">
-                            <svg class="h-4 w-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
-                            </svg>
-                            <p class="text-xs text-gray-600 dark:text-gray-400 font-semibold">LOTE</p>
-                          </div>
-                          <p class="font-mono font-bold text-sm text-gray-900 dark:text-gray-100">{{ lote.lote }}</p>
-                        </div>
-                        <div>
-                          <div class="flex items-center gap-2 mb-1">
-                            <svg class="h-4 w-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                            <p class="text-xs text-gray-600 dark:text-gray-400 font-semibold">VENCE</p>
-                          </div>
-                          <p class="font-bold text-sm text-gray-900 dark:text-gray-100">{{ formatearFecha(lote.fechaVencimiento) }}</p>
-                        </div>
-                      </div>
-                      <Input
-                        type="number"
-                        :model-value="String(cantidadesActuales[lote.indiceOriginal ?? loteIdx] || '')"
-                        @update:model-value="(val: string) => handleCantidadSala(lote.indiceOriginal ?? loteIdx, val)"
-                        placeholder="Ingrese cantidad"
-                        class="bg-white dark:bg-gray-700 border-3 border-blue-600 dark:border-blue-500 text-gray-900 dark:text-gray-100 text-2xl font-bold h-16 text-center shadow-lg rounded-lg focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-800"
-                        min="0"
-                        autofocus
-                      />
-                    </div>
-                  </template>
-                </div>
-              </div>
-
-              <Button
-                @click="handleGuardarProducto"
-                :disabled="!todosLlenosEnSala"
-                class="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:opacity-90 h-14 text-lg font-bold shadow-xl disabled:opacity-50 rounded-xl"
-              >
-                <svg class="h-5 w-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                {{ indexActual < productosParaReposicion.length - 1 ? 'Siguiente Producto' : 'Continuar' }}
-              </Button>
-            </div>
-          </Card>
+          <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Total bodega</p>
+            <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">{{ tieneBodega ? totalBodega : '—' }}</p>
+          </div>
+          <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Productos</p>
+            <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">{{ productos.length }}</p>
+          </div>
         </div>
-      </div>
 
-      <!-- Fase: Pregunta Bodega -->
-      <div v-else-if="fase === 'pregunta-bodega'" class="min-h-screen p-6 flex items-center justify-center">
-        <Card class="w-full max-w-md bg-white dark:bg-gray-800 shadow-2xl border-0 overflow-hidden">
-          <div class="bg-gradient-to-br from-blue-600 via-blue-600 to-blue-700 text-white pb-8 pt-8 px-5">
-            <div class="flex justify-center mb-4">
-              <div class="bg-white/20 p-4 rounded-2xl backdrop-blur-sm">
-                <svg class="h-12 w-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-              </div>
-            </div>
-            <h2 class="text-center text-2xl font-bold">Conteo en Sala Completado</h2>
-            <p class="text-center text-blue-100 text-sm mt-2">{{ salaSeleccionada }}</p>
-          </div>
-          <div class="p-8 space-y-6">
-            <div class="text-center space-y-3">
-              <div class="inline-flex items-center justify-center w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full mb-2">
-                <svg class="h-8 w-8 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">¿Esta sala tiene bodega?</h3>
-              <p class="text-gray-600 dark:text-gray-400 text-sm">Selecciona una opción para continuar</p>
-            </div>
-
-            <div class="space-y-3">
-              <Button
-                @click="handleRespuestaBodega(true)"
-                class="w-full h-16 bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:opacity-90 text-lg font-bold shadow-lg"
-              >
-                <svg class="h-6 w-6 mr-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                </svg>
-                Sí, tiene bodega
-              </Button>
-              <Button
-                @click="handleRespuestaBodega(false)"
-                variant="outline"
-                class="w-full h-16 border-2 border-blue-600 dark:border-blue-500 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900 text-lg font-bold"
-              >
-                No tiene bodega
-              </Button>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      <!-- Fase: Conteo en Bodega -->
-      <div v-else-if="fase === 'bodega'" class="min-h-screen p-4 pb-8">
-        <div class="max-w-2xl mx-auto">
-          <div class="text-center mb-6">
-            <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl shadow-lg mb-4">
-              <svg class="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-              </svg>
-            </div>
-            <h1 class="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-1 leading-tight">Reposición Minoil</h1>
-            <p class="text-sm text-gray-600 dark:text-gray-400 font-medium">{{ salaSeleccionada }}</p>
-          </div>
-
-          <Card class="bg-white dark:bg-gray-800 shadow-2xl border-0 overflow-hidden">
-            <div class="bg-gradient-to-br from-blue-600 via-blue-600 to-blue-700 text-white pb-6 pt-6 px-5">
-              <h2 class="text-xl font-bold text-center">Conteo en Bodega</h2>
-              <p class="text-blue-100 text-sm mt-2 text-center font-medium">Producto {{ indexActual + 1 }}/{{ productosParaReposicion.length || 0 }}</p>
-            </div>
-            <div class="space-y-5 pt-6 px-5 pb-6">
-              <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800 p-4 rounded-2xl border-2 border-blue-200 dark:border-blue-700 shadow-sm">
-                <div class="flex items-start gap-3">
-                  <div class="bg-white dark:bg-gray-700 p-2 rounded-lg shadow-sm">
-                    <svg class="h-5 w-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                    </svg>
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <p class="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">PRODUCTO</p>
-                    <p class="text-gray-900 dark:text-gray-100 font-bold text-base leading-tight">{{ itemActual.item }}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div class="space-y-4">
-                <p class="text-sm font-bold text-gray-900 dark:text-gray-100 text-center">Ingresa cantidad por lote</p>
-                <div class="grid grid-cols-1 gap-4">
-                  <template v-for="(lote, loteIdx) in itemActual.lotes" :key="loteIdx">
-                    <div
-                      v-if="lote.lote && lote.lote.trim() !== ''"
-                      class="bg-blue-50 dark:bg-blue-900 p-4 rounded-xl border-2 border-blue-200 dark:border-blue-700"
-                    >
-                      <div class="grid grid-cols-2 gap-3 mb-3">
-                        <div>
-                          <div class="flex items-center gap-2 mb-1">
-                            <svg class="h-4 w-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
-                            </svg>
-                            <p class="text-xs text-gray-600 dark:text-gray-400 font-semibold">LOTE</p>
-                          </div>
-                          <p class="font-mono font-bold text-sm text-gray-900 dark:text-gray-100">{{ lote.lote }}</p>
-                        </div>
-                        <div>
-                          <div class="flex items-center gap-2 mb-1">
-                            <svg class="h-4 w-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                            <p class="text-xs text-gray-600 dark:text-gray-400 font-semibold">VENCE</p>
-                          </div>
-                          <p class="font-bold text-sm text-gray-900 dark:text-gray-100">{{ formatearFecha(lote.fechaVencimiento) }}</p>
-                        </div>
-                      </div>
-                      <Input
-                        type="number"
-                        :model-value="String(cantidadesBodega[lote.indiceOriginal ?? loteIdx] || '')"
-                        @update:model-value="(val: string) => handleCantidadBodega(lote.indiceOriginal ?? loteIdx, val)"
-                        placeholder="Ingrese cantidad"
-                        class="bg-white dark:bg-gray-700 border-3 border-blue-600 dark:border-blue-500 text-gray-900 dark:text-gray-100 text-2xl font-bold h-16 text-center shadow-lg rounded-lg focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-800"
-                        min="0"
-                        autofocus
-                      />
-                    </div>
-                  </template>
-                </div>
-              </div>
-
-              <Button
-                @click="handleSiguienteBodega"
-                :disabled="!todosLlenosEnBodega"
-                class="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:opacity-90 h-16 text-base font-bold shadow-xl disabled:opacity-50 rounded-xl"
-              >
-                <svg class="h-5 w-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                {{ indexActual < productosParaReposicion.length - 1 ? 'Siguiente Producto' : 'Finalizar' }}
-              </Button>
-            </div>
-          </Card>
+        <div
+          v-for="grupo in productosInforme"
+          :key="grupo.item"
+          class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
+        >
+          <p class="border-b border-gray-200 bg-gray-50 px-4 py-2.5 font-semibold text-gray-900 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-100">{{ grupo.item }}</p>
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-xs text-gray-500 dark:text-gray-400">
+                <th class="px-4 py-2 text-left font-medium">Lote</th>
+                <th class="px-2 py-2 text-left font-medium">Vence</th>
+                <th class="px-2 py-2 text-right font-medium">Sala</th>
+                <th class="px-4 py-2 text-right font-medium">Bodega</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+              <tr v-for="lote in grupo.lotes" :key="lote.lote">
+                <td class="px-4 py-2 font-mono text-xs text-gray-900 dark:text-gray-100">{{ lote.lote }}</td>
+                <td class="px-2 py-2 text-xs text-gray-600 dark:text-gray-400">{{ fechaCorta(lote.fechaVencimiento) }}</td>
+                <td class="px-2 py-2 text-right font-bold text-gray-900 dark:text-gray-100">{{ lote.cantidadSala }}</td>
+                <td class="px-4 py-2 text-right">
+                  <span v-if="lote.cantidadBodega === null" class="text-xs text-gray-400 dark:text-gray-500">Sin bodega</span>
+                  <span v-else class="font-bold text-gray-900 dark:text-gray-100">{{ lote.cantidadBodega }}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-      </div>
+      </section>
+    </div>
 
-      <!-- Fase: Informe Final -->
-      <div v-else-if="fase === 'informe' || mostrarInforme" class="min-h-screen p-4 pb-8">
-        <div class="max-w-2xl mx-auto">
-          <Card class="bg-white dark:bg-gray-800 shadow-2xl border-0 overflow-hidden">
-            <div class="bg-gradient-to-br from-blue-600 via-blue-600 to-blue-700 text-white pb-8 pt-6 px-5">
-              <div class="flex items-center justify-center mb-3">
-                <div class="bg-white/20 p-3 rounded-xl backdrop-blur-sm">
-                  <svg class="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-              </div>
-              <h2 class="text-center text-2xl font-bold">Informe de Reposición</h2>
-              <p class="text-center text-blue-100 text-sm mt-1">Minoil</p>
-            </div>
-            <div class="space-y-5 pt-6 px-4">
-              <div class="grid grid-cols-2 gap-3">
-                <div class="bg-gradient-to-br from-green-500 to-green-600 p-5 rounded-2xl shadow-lg text-white">
-                  <svg class="h-6 w-6 mb-2 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                  </svg>
-                  <p class="text-sm font-medium opacity-90">Total Sala</p>
-                  <p class="text-3xl font-bold mt-1">{{ totalSala }}</p>
-                </div>
-                <div class="bg-gradient-to-br from-amber-500 to-amber-600 p-5 rounded-2xl shadow-lg text-white">
-                  <svg class="h-6 w-6 mb-2 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                  </svg>
-                  <p class="text-sm font-medium opacity-90">Total Bodega</p>
-                  <p class="text-3xl font-bold mt-1">{{ salaTieneBodega ? totalBodega : 'N/A' }}</p>
-                </div>
-              </div>
+    <!-- Barra de acciones fija -->
+    <div
+      v-if="hayBarraAcciones"
+      class="fixed inset-x-0 bottom-0 z-30 border-t border-gray-200 bg-white/95 px-4 py-3 backdrop-blur dark:border-gray-700 dark:bg-gray-900/95 lg:left-64"
+      style="padding-bottom: max(0.75rem, env(safe-area-inset-bottom))"
+    >
+      <div class="mx-auto flex max-w-2xl gap-3">
+        <template v-if="fase === 'seleccionar-productos'">
+          <Button variant="outline" class="h-12 flex-1" @click="cambiarSala">Cambiar sala</Button>
+          <Button class="h-12 flex-[2] font-bold" :disabled="seleccionados.length === 0" @click="iniciarConteo">
+            Contar {{ seleccionados.length || '' }} producto{{ seleccionados.length === 1 ? '' : 's' }}
+          </Button>
+        </template>
 
-              <div class="bg-blue-50 dark:bg-blue-900 p-4 rounded-xl border-2 border-blue-200 dark:border-blue-700">
-                <p class="text-center text-sm font-semibold text-blue-900 dark:text-blue-100">
-                  {{ registros.length }} registros completados
-                </p>
-              </div>
+        <template v-else-if="fase === 'sala' || fase === 'bodega' || fase === 'pregunta-bodega'">
+          <Button variant="outline" class="h-12 flex-1" @click="anterior">Anterior</Button>
+          <Button v-if="fase !== 'pregunta-bodega'" class="h-12 flex-[2] font-bold" :disabled="!productoCompleto" @click="siguiente">
+            {{ textoSiguiente }}
+          </Button>
+        </template>
 
-              <div class="space-y-3">
-                <div
-                  v-for="(producto, prodIndex) in registrosAgrupados"
-                  :key="prodIndex"
-                  class="bg-white dark:bg-gray-700 rounded-xl border-2 border-blue-100 dark:border-blue-800 shadow-md overflow-hidden"
-                >
-                  <div class="bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-3">
-                    <div class="flex items-center justify-between">
-                      <div class="flex-1 min-w-0">
-                        <p class="font-bold text-white text-base leading-tight">{{ producto.item }}</p>
-                        <p class="text-xs text-blue-100 mt-1 flex items-center gap-1">
-                          <svg class="h-3 w-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                          </svg>
-                          <span class="truncate">{{ producto.sala }}</span>
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="p-4">
-                    <div class="overflow-x-auto">
-                      <table class="w-full text-sm">
-                        <thead>
-                          <tr class="border-b border-gray-200 dark:border-gray-600">
-                            <th class="text-left py-2 px-2 text-xs font-semibold text-gray-600 dark:text-gray-400">Lote</th>
-                            <th class="text-left py-2 px-2 text-xs font-semibold text-gray-600 dark:text-gray-400">Vence</th>
-                            <th class="text-center py-2 px-2 text-xs font-semibold text-green-600 dark:text-green-400">Sala</th>
-                            <th class="text-center py-2 px-2 text-xs font-semibold text-amber-600 dark:text-amber-400">Bodega</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr
-                            v-for="(lote, loteIdx) in producto.lotes"
-                            :key="loteIdx"
-                            class="border-b border-gray-100 dark:border-gray-700"
-                          >
-                            <td class="py-2 px-2">
-                              <p class="font-mono text-xs font-bold text-gray-900 dark:text-gray-100">{{ lote.lote }}</p>
-                            </td>
-                            <td class="py-2 px-2">
-                              <p class="text-xs text-gray-700 dark:text-gray-300">{{ formatearFecha(lote.fechaVencimiento) }}</p>
-                            </td>
-                            <td class="py-2 px-2 text-center">
-                              <span class="inline-block bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-2 py-1 rounded font-bold text-sm">
-                                {{ lote.cantidadSala }}
-                              </span>
-                            </td>
-                            <td class="py-2 px-2 text-center">
-                              <span
-                                v-if="lote.noHayEnBodega"
-                                class="inline-block bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 px-2 py-1 rounded font-bold text-xs"
-                              >
-                                No hay
-                              </span>
-                              <span
-                                v-else
-                                class="inline-block bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 px-2 py-1 rounded font-bold text-sm"
-                              >
-                                {{ lote.cantidadBodega || 0 }}
-                              </span>
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-
-                <Button
-                  @click="descargarResumen"
-                  variant="outline"
-                  class="h-14 text-base font-bold border-2 border-green-600 dark:border-green-500 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900"
-                >
-                  <svg class="h-5 w-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  Descargar PDF
-                </Button>
-                <Button
-                  @click="resetearFormulario"
-                  class="h-14 text-base font-bold bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:opacity-90 shadow-lg"
-                >
-                  <svg class="h-5 w-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                  Nueva Reposición
-                </Button>
-              </div>
-            </div>
-          </Card>
-        </div>
+        <template v-else-if="fase === 'resumen'">
+          <template v-if="estadoGuardado === 'guardado'">
+            <Button variant="outline" class="h-12 flex-1" :disabled="generandoPdf" @click="descargarPdf">
+              {{ generandoPdf ? 'Generando...' : 'Descargar PDF' }}
+            </Button>
+            <Button class="h-12 flex-1 font-bold" @click="reiniciar">Nueva reposición</Button>
+          </template>
+          <template v-else>
+            <Button variant="outline" class="h-12 flex-1" :disabled="estadoGuardado === 'guardando'" @click="editarConteo">Editar</Button>
+            <Button class="h-12 flex-[2] font-bold" :disabled="estadoGuardado === 'guardando'" @click="guardar">
+              {{ estadoGuardado === 'error' ? 'Reintentar guardado' : estadoGuardado === 'guardando' ? 'Guardando...' : 'Guardar conteo' }}
+            </Button>
+          </template>
+        </template>
       </div>
     </div>
   </MainLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import MainLayout from '@/components/layouts/MainLayout.vue'
-import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
-import Input from '@/components/ui/Input.vue'
-import RoomSelectorModal, { type Sala } from '@/components/RoomSelectorModal.vue'
-import salasService from '@/services/salas.service'
+import ConteoLotes from '@/components/impostor/ConteoLotes.vue'
+import SelectorSala from '@/components/impostor/SelectorSala.vue'
+import { estadoVencimiento, type Cantidades, type ProductoReposicion } from '@/components/impostor/types'
+import salasService, { type Sala } from '@/services/salas.service'
 import productosService from '@/services/productos.service'
 import impostorService from '@/services/impostor.service'
+import authService from '@/services/auth.service'
 import { useToast } from '@/composables/useToast'
-import { jsPDF } from 'jspdf'
+import { descargarInformeReposicion, fechaCorta, type ProductoInforme } from '@/utils/informe-reposicion-pdf'
 
-interface LoteInfo {
-  lote: string
-  fechaVencimiento: string
-  stockSala: number
-  stockBodega: number
-  indiceOriginal?: number
+type Fase = 'seleccionar-sala' | 'cargando-productos' | 'seleccionar-productos' | 'sala' | 'pregunta-bodega' | 'bodega' | 'resumen'
+type EstadoGuardado = 'pendiente' | 'guardando' | 'guardado' | 'error'
+
+const PASOS = ['Productos', 'Sala', 'Bodega', 'Guardar']
+const BORRADOR_KEY = 'minoil:reposicion-impostor:borrador:v1'
+
+interface Borrador {
+  version: 1
+  fase: Fase
+  sala: Sala
+  productosBase: ProductoReposicion[]
+  seleccionados: string[]
+  productos: ProductoReposicion[]
+  conteoSala: Cantidades
+  conteoBodega: Cantidades
+  tieneBodega: boolean | null
+  indexActual: number
+  conteoId: string
+  actualizado: string
 }
 
-interface ItemReposicion {
-  id: string
-  /** Código del producto (ItemCode SAP) para guardar en BD */
-  codigoProducto: string
-  item: string
-  sala: string
-  lotes: LoteInfo[]
-}
-
-interface RegistroReposicion {
-  item: string
-  itemCode: string
-  sala: string
-  lote: string
-  fechaVencimiento: string
-  cantidadSala: number
-  cantidadBodega: number | null
-  noHayEnBodega: boolean
-}
-
-type Fase = 'seleccionar-sala' | 'cargando-productos' | 'seleccionar-productos' | 'sala' | 'pregunta-bodega' | 'bodega' | 'informe'
+const toast = useToast()
 
 const fase = ref<Fase>('seleccionar-sala')
-const regional = ref<string>('')
-const salaSeleccionada = ref<string | null>(null)
-const salaSeleccionadaObj = ref<Sala | null>(null)
+const sala = ref<Sala | null>(null)
+const productosBase = ref<ProductoReposicion[]>([])
+const seleccionados = ref<string[]>([])
+const productos = ref<ProductoReposicion[]>([])
+const conteoSala = ref<Cantidades>({})
+const conteoBodega = ref<Cantidades>({})
+const tieneBodega = ref<boolean | null>(null)
 const indexActual = ref(0)
-const lotesCantidadesSala = ref<Record<string, Record<number, number | undefined>>>({})
-const lotesCantidadesBodega = ref<Record<string, Record<number, number | undefined>>>({})
-const registros = ref<RegistroReposicion[]>([])
-const mostrarInforme = ref(false)
-const salaTieneBodega = ref<boolean | null>(null)
-const productosBase = ref<ItemReposicion[]>([])
-const productosSeleccionados = ref<Set<string>>(new Set())
-const productosParaReposicion = ref<ItemReposicion[]>([])
-const loadingProductos = ref(false)
-const guardandoEnBD = ref(false)
-const toast = useToast()
+const conteoId = ref('')
+const estadoGuardado = ref<EstadoGuardado>('pendiente')
+const errorGuardado = ref('')
 
 const salasDisponibles = ref<Sala[]>([])
 const loadingSalas = ref(false)
+const errorSalas = ref(false)
+const busquedaProducto = ref('')
+const borradorPendiente = ref<Borrador | null>(null)
+const confirmarDescarte = ref(false)
+const generandoPdf = ref(false)
 
-const itemActual = computed(() => productosParaReposicion.value[indexActual.value])
+// ---------- Derivados ----------
 
-const cantidadesActuales = computed(() => {
-  if (!productosParaReposicion.value[indexActual.value]) return {}
-  const idProductoActual = productosParaReposicion.value[indexActual.value].id
-  return lotesCantidadesSala.value[idProductoActual] || {}
+const nombreDeSala = (s: Sala) => (s.alias ? `${s.nombre || s.codigo} (${s.alias})` : s.nombre || s.codigo)
+const nombreSala = computed(() => (sala.value ? nombreDeSala(sala.value) : ''))
+
+const productoActual = computed(() => productos.value[indexActual.value])
+
+const productoCompleto = computed(() => {
+  const p = productoActual.value
+  if (!p) return false
+  const conteo = (fase.value === 'bodega' ? conteoBodega.value : conteoSala.value)[p.id] ?? {}
+  return p.lotes.every((_, i) => conteo[i] !== undefined)
 })
 
-const cantidadesBodega = computed(() => {
-  if (!productosParaReposicion.value[indexActual.value]) return {}
-  const idProductoActual = productosParaReposicion.value[indexActual.value].id
-  return lotesCantidadesBodega.value[idProductoActual] || {}
+const enProgreso = computed(() => !['seleccionar-sala', 'cargando-productos'].includes(fase.value)
+  && estadoGuardado.value !== 'guardado')
+
+const pasoActual = computed(() => ({
+  'seleccionar-sala': 0, 'cargando-productos': 0, 'seleccionar-productos': 1,
+  sala: 2, 'pregunta-bodega': 3, bodega: 3, resumen: 4,
+}[fase.value]))
+
+const hayBarraAcciones = computed(() => ['seleccionar-productos', 'sala', 'bodega', 'pregunta-bodega', 'resumen'].includes(fase.value))
+
+const textoSiguiente = computed(() => {
+  if (indexActual.value < productos.value.length - 1) return 'Siguiente producto'
+  return fase.value === 'sala' ? 'Terminar sala' : 'Ver resumen'
 })
 
-const todosLlenosEnSala = computed(() => {
-  if (!itemActual.value) return false
-  const idProductoActual = productosParaReposicion.value[indexActual.value].id
-  const cantidades = lotesCantidadesSala.value[idProductoActual] || {}
-  return itemActual.value.lotes.every((lote, idx) => {
-    const indiceLote = lote.indiceOriginal !== undefined ? lote.indiceOriginal : idx
-    const cantidad = cantidades[indiceLote]
-    // Permitir 0, pero no undefined o null (campos vacíos)
-    return cantidad !== undefined && cantidad !== null && cantidad >= 0
-  })
+const productosFiltrados = computed(() => {
+  const term = busquedaProducto.value.trim().toLowerCase()
+  return term ? productosBase.value.filter((p) => p.item.toLowerCase().includes(term)) : productosBase.value
 })
 
-const todosLlenosEnBodega = computed(() => {
-  if (!itemActual.value) return false
-  const idProductoActual = productosParaReposicion.value[indexActual.value].id
-  const cantidades = lotesCantidadesBodega.value[idProductoActual] || {}
-  return itemActual.value.lotes.every((lote, idx) => {
-    const indiceLote = lote.indiceOriginal !== undefined ? lote.indiceOriginal : idx
-    const cantidad = cantidades[indiceLote]
-    // Permitir 0, pero no undefined o null (campos vacíos)
-    return cantidad !== undefined && cantidad !== null && cantidad >= 0
-  })
-})
+const productosInforme = computed<ProductoInforme[]>(() => productos.value.map((p) => ({
+  item: p.item,
+  lotes: p.lotes.map((lote, i) => ({
+    lote: lote.lote,
+    fechaVencimiento: lote.fechaVencimiento,
+    cantidadSala: conteoSala.value[p.id]?.[i] ?? 0,
+    cantidadBodega: tieneBodega.value ? conteoBodega.value[p.id]?.[i] ?? 0 : null,
+  })),
+})))
 
-const totalSala = computed(() => registros.value.reduce((acc, r) => acc + r.cantidadSala, 0))
-const totalBodega = computed(() => registros.value.reduce((acc, r) => acc + (r.cantidadBodega || 0), 0))
+const registros = computed(() => productos.value.flatMap((p, pi) => productosInforme.value[pi].lotes.map((lote) => ({
+  CardCode: sala.value!.codigo,
+  ItemCode: p.codigoProducto,
+  BatchNum: lote.lote,
+  StockSala: lote.cantidadSala,
+  StockBodega: lote.cantidadBodega ?? 0,
+}))))
 
-// Agrupar registros por producto para mostrar los 3 lotes en una sola fila
-const registrosAgrupados = computed(() => {
-  const agrupados = new Map<string, {
-    item: string
-    sala: string
-    lotes: Array<{
-      lote: string
-      fechaVencimiento: string
-      cantidadSala: number
-      cantidadBodega: number | null
-      noHayEnBodega: boolean
-    }>
-  }>()
+const totalSala = computed(() => registros.value.reduce((acc, r) => acc + r.StockSala, 0))
+const totalBodega = computed(() => registros.value.reduce((acc, r) => acc + r.StockBodega, 0))
 
-  registros.value.forEach((registro) => {
-    const key = `${registro.item}-${registro.sala}`
-    if (!agrupados.has(key)) {
-      agrupados.set(key, {
-        item: registro.item,
-        sala: registro.sala,
-        lotes: [],
-      })
-    }
-    agrupados.get(key)!.lotes.push({
-      lote: registro.lote,
-      fechaVencimiento: registro.fechaVencimiento,
-      cantidadSala: registro.cantidadSala,
-      cantidadBodega: registro.cantidadBodega,
-      noHayEnBodega: registro.noHayEnBodega,
-    })
-  })
-
-  return Array.from(agrupados.values())
-})
-
-const formatearFecha = (fecha: string) => {
-  if (!fecha) return ''
-  // Parsear la fecha como fecha local para evitar problemas de zona horaria
-  // La fecha viene en formato "YYYY-MM-DD" desde el backend
-  const partes = fecha.split('-')
-  if (partes.length === 3) {
-    const año = parseInt(partes[0], 10)
-    const mes = parseInt(partes[1], 10) - 1 // Los meses en Date son 0-indexados
-    const dia = parseInt(partes[2], 10)
-    const fechaLocal = new Date(año, mes, dia)
-    return fechaLocal.toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    })
-  }
-  // Fallback si el formato no es el esperado
-  return new Date(fecha).toLocaleDateString('es-ES', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  })
+const alertaVencimiento = (p: ProductoReposicion) => {
+  const estados = p.lotes.map((l) => estadoVencimiento(l.fechaVencimiento))
+  return estados.includes('vencido') ? 'vencido' : estados.includes('pronto') ? 'pronto' : null
 }
 
-const toggleProducto = (productoId: string) => {
-  if (productosSeleccionados.value.has(productoId)) {
-    productosSeleccionados.value.delete(productoId)
-  } else {
-    productosSeleccionados.value.add(productoId)
-  }
-  // Crear una nueva instancia del Set para reactividad
-  productosSeleccionados.value = new Set(productosSeleccionados.value)
-}
-
-const iniciarReposicion = () => {
-  if (productosSeleccionados.value.size === 0) {
-    toast.warning('Selecciona productos', 'Debes seleccionar al menos un producto')
-    return
-  }
-  
-  // Filtrar solo los productos seleccionados
-  productosParaReposicion.value = productosBase.value.filter(p => 
-    productosSeleccionados.value.has(p.id)
-  )
-  
-  if (productosParaReposicion.value.length === 0) {
-    toast.warning('Sin productos', 'No hay productos seleccionados')
-    return
-  }
-  
-  // Resetear índices y cantidades
-  indexActual.value = 0
-  lotesCantidadesSala.value = {}
-  lotesCantidadesBodega.value = {}
-  registros.value = []
-  
-  // Ir a la fase de conteo en sala
-  fase.value = 'sala'
-  toast.success('Reposición iniciada', `${productosParaReposicion.value.length} producto(s) seleccionado(s)`)
-}
-
-const handleSeleccionarSala = async (sala: Sala) => {
-  console.log('🔵 Seleccionando sala:', sala)
-  salaSeleccionada.value = sala.alias
-    ? `${sala.nombre || sala.codigo} (${sala.alias})`
-    : sala.nombre || sala.codigo
-  salaSeleccionadaObj.value = sala
-  indexActual.value = 0
-  
-  // Mostrar indicador de carga
-  fase.value = 'cargando-productos'
-  
-  try {
-    // Cargar productos para esta sala
-    await cargarProductos(sala.codigo)
-    
-    console.log('🔵 Productos cargados:', productosBase.value.length)
-    
-    // Si hay productos, ir a la fase de seleccionar productos, sino volver a seleccionar
-    if (productosBase.value.length > 0) {
-      console.log('✅ Hay productos, cambiando a fase seleccionar-productos')
-      // Iniciar con ningún producto seleccionado - el usuario debe seleccionarlos manualmente
-      productosSeleccionados.value = new Set()
-      fase.value = 'seleccionar-productos'
-    } else {
-      console.warn('⚠️ No hay productos, volviendo a seleccionar sala')
-      toast.warning('Sin productos', 'No se encontraron productos para esta sala')
-      fase.value = 'seleccionar-sala'
-    }
-  } catch (error: any) {
-    console.error('❌ Error en handleSeleccionarSala:', error)
-    toast.error('Error al cargar productos', error.message || 'Ocurrió un error')
-    fase.value = 'seleccionar-sala'
-  }
-}
-
-const handleCantidadSala = (loteIdx: number, value: string) => {
-  if (!productosParaReposicion.value[indexActual.value]) return
-  const idProductoActual = productosParaReposicion.value[indexActual.value].id
-  const nuevasCantidades = { ...cantidadesActuales.value }
-  // Convertir a número, si está vacío o es inválido, establecer como undefined para que la validación falle
-  // Permitir 0 como valor válido
-  const numValue = value.trim() === '' ? undefined : Number(value)
-  nuevasCantidades[loteIdx] = (numValue !== undefined && !isNaN(numValue) && numValue >= 0) ? numValue : undefined
-  lotesCantidadesSala.value = {
-    ...lotesCantidadesSala.value,
-    [idProductoActual]: nuevasCantidades,
-  }
-}
-
-const handleCantidadBodega = (loteIdx: number, value: string) => {
-  if (!productosParaReposicion.value[indexActual.value]) return
-  const idProductoActual = productosParaReposicion.value[indexActual.value].id
-  const nuevasCantidades = { ...cantidadesBodega.value }
-  // Convertir a número, si está vacío o es inválido, establecer como undefined para que la validación falle
-  // Permitir 0 como valor válido
-  const numValue = value.trim() === '' ? undefined : Number(value)
-  nuevasCantidades[loteIdx] = (numValue !== undefined && !isNaN(numValue) && numValue >= 0) ? numValue : undefined
-  lotesCantidadesBodega.value = {
-    ...lotesCantidadesBodega.value,
-    [idProductoActual]: nuevasCantidades,
-  }
-}
-
-const handleGuardarProducto = () => {
-  if (!todosLlenosEnSala.value) return
-
-  if (indexActual.value < productosParaReposicion.value.length - 1) {
-    indexActual.value++
-  } else {
-    fase.value = 'pregunta-bodega'
-  }
-}
-
-const handleRespuestaBodega = (tieneBodega: boolean) => {
-  salaTieneBodega.value = tieneBodega
-
-  if (tieneBodega) {
-    fase.value = 'bodega'
-    indexActual.value = 0
-    registros.value = [] // Limpiar registros antes de empezar bodega
-  } else {
-    // No tiene bodega - generar resumen inmediatamente
-    const nuevosRegistros: RegistroReposicion[] = []
-    productosParaReposicion.value.forEach((producto) => {
-      producto.lotes.forEach((lote) => {
-        // Usar el índice original del lote si está disponible
-        const indiceLote = lote.indiceOriginal !== undefined ? lote.indiceOriginal : producto.lotes.indexOf(lote)
-        nuevosRegistros.push({
-          item: producto.item,
-          itemCode: producto.codigoProducto,
-          sala: salaSeleccionada.value!,
-          lote: lote.lote,
-          fechaVencimiento: lote.fechaVencimiento,
-          cantidadSala: (lotesCantidadesSala.value[producto.id]?.[indiceLote] ?? 0) || 0,
-          cantidadBodega: null,
-          noHayEnBodega: true,
-        })
-      })
-    })
-    registros.value = nuevosRegistros
-    fase.value = 'informe' // Cambiar a fase informe en lugar de solo mostrarInforme
-    mostrarInforme.value = true
-  }
-}
-
-const handleSiguienteBodega = () => {
-  const idProductoActual = productosParaReposicion.value[indexActual.value].id
-  const itemActual = productosParaReposicion.value[indexActual.value]
-  const cantidadesBodega = lotesCantidadesBodega.value[idProductoActual] || {}
-  const cantidadesSala = lotesCantidadesSala.value[idProductoActual] || {}
-
-  itemActual.lotes.forEach((lote) => {
-    // Usar el índice original del lote si está disponible
-    const indiceLote = lote.indiceOriginal !== undefined ? lote.indiceOriginal : itemActual.lotes.indexOf(lote)
-    registros.value.push({
-      item: itemActual.item,
-      itemCode: itemActual.codigoProducto,
-      sala: salaSeleccionada.value!,
-      lote: lote.lote,
-      fechaVencimiento: lote.fechaVencimiento,
-      cantidadSala: (cantidadesSala[indiceLote] ?? 0) || 0,
-      cantidadBodega: (cantidadesBodega[indiceLote] ?? 0) || 0,
-      noHayEnBodega: false,
-    })
-  })
-
-  avanzarSiguienteProducto()
-}
-
-
-const avanzarSiguienteProducto = () => {
-  if (indexActual.value < productosParaReposicion.value.length - 1) {
-    indexActual.value++
-  } else {
-    // Terminó de contar bodega - mostrar resumen
-    fase.value = 'informe'
-    mostrarInforme.value = true
-  }
-}
-
-const guardarEnBaseDatos = async () => {
-  if (!salaSeleccionadaObj.value || registros.value.length === 0) {
-    toast.warning('Sin datos', 'No hay datos para guardar')
-    return
-  }
-
-  guardandoEnBD.value = true
-  try {
-    console.log('🔵 Preparando datos para guardar...')
-    
-    // Transformar los registros al formato esperado por la API
-    const datosParaInsertar = registros.value.map(registro => ({
-      CardCode: salaSeleccionadaObj.value!.codigo,
-      ItemCode: registro.itemCode,
-      BatchNum: registro.lote,
-      StockSala: registro.cantidadSala,
-      StockBodega: registro.cantidadBodega || 0,
-    }))
-
-    console.log('🔵 Enviando datos:', datosParaInsertar.length, 'registros')
-    const resultado = await impostorService.insertarStock(datosParaInsertar, regional.value || undefined)
-    
-    toast.success(
-      '¡Datos guardados!',
-      `${resultado.registrosInsertados} registros insertados correctamente en la base de datos`
-    )
-    console.log('✅ Datos guardados correctamente:', resultado)
-  } catch (error: any) {
-    console.error('❌ Error guardando datos:', error)
-    toast.error(
-      'Error al guardar',
-      error.response?.data?.message || error.message || 'Ocurrió un error al guardar los datos'
-    )
-  } finally {
-    guardandoEnBD.value = false
-  }
-}
-
-const resetearFormulario = () => {
-  registros.value = []
-  lotesCantidadesSala.value = {}
-  lotesCantidadesBodega.value = {}
-  indexActual.value = 0
-  fase.value = 'seleccionar-sala'
-  mostrarInforme.value = false
-  salaTieneBodega.value = null
-  salaSeleccionada.value = null
-  salaSeleccionadaObj.value = null
-  productosBase.value = []
-  productosSeleccionados.value = new Set()
-  productosParaReposicion.value = []
-}
-
-watch(fase, (nuevaFase) => {
-  if (nuevaFase === 'informe') {
-    guardarEnBaseDatos()
-  }
-})
+// ---------- Salas y productos ----------
 
 const cargarSalas = async () => {
   loadingSalas.value = true
-  salasDisponibles.value = [] // Limpiar salas anteriores
+  errorSalas.value = false
   try {
-    console.log('🔵 Iniciando carga de salas...')
     const salas = await salasService.getSalas()
-    console.log('✅ Salas recibidas del servidor:', salas)
-    console.log('✅ Total de salas recibidas:', salas.length)
-    
-    if (!salas || salas.length === 0) {
-      console.warn('⚠️ No se recibieron salas del servidor')
-      return
-    }
-    
-    // Eliminar duplicados por código
-    const salasUnicas = new Map<string, Sala>()
-    salas.forEach((sala) => {
-      if (sala.codigo && !salasUnicas.has(sala.codigo)) {
-        salasUnicas.set(sala.codigo, sala)
-      } else if (!sala.codigo) {
-        console.warn('⚠️ Sala sin código:', sala)
-      }
-    })
-    
-    salasDisponibles.value = Array.from(salasUnicas.values())
-    console.log('✅ Salas únicas después de eliminar duplicados:', salasDisponibles.value.length)
-    console.log('✅ Salas disponibles:', salasDisponibles.value.map(s => s.nombre))
-  } catch (error: any) {
-    console.error('❌ Error cargando salas:', error)
-    console.error('❌ Error response:', error.response)
-    console.error('❌ Error message:', error.message)
-    // Si hay error, NO usar salas por defecto, dejar vacío para que el usuario vea el error
-    salasDisponibles.value = []
-    toast.error('Error al cargar salas', 'Por favor, recarga la página')
+    const unicas = new Map<string, Sala>()
+    for (const s of salas ?? []) if (s.codigo && !unicas.has(s.codigo)) unicas.set(s.codigo, s)
+    salasDisponibles.value = [...unicas.values()]
+  } catch {
+    errorSalas.value = true
   } finally {
     loadingSalas.value = false
   }
 }
 
-const cargarProductos = async (cardCode: string) => {
-  loadingProductos.value = true
-  productosBase.value = [] // Limpiar productos anteriores
+const seleccionarSala = async (s: Sala) => {
+  sala.value = s
+  fase.value = 'cargando-productos'
   try {
-    console.log('🔵 Cargando productos para sala:', cardCode)
-    
-    if (!cardCode || cardCode.trim() === '') {
-      throw new Error('El código de sala está vacío')
-    }
-    
-    const productos = await productosService.getProductosPorSala(cardCode)
-    console.log('✅ Productos recibidos del servidor:', productos)
-    console.log('✅ Cantidad de productos recibidos:', productos.length)
-    
-    if (!productos || productos.length === 0) {
-      console.warn('⚠️ No se recibieron productos del servidor')
-      productosBase.value = []
-      return
-    }
-    
-    // Convertir productos de la BD al formato esperado
-    productosBase.value = productos
-      .filter((producto) => producto.nombreProducto && producto.nombreProducto.trim() !== '')
-      .map((producto, index) => {
-        // Filtrar lotes vacíos pero mantener el índice original para mapeo
-        const lotesConDatos = producto.lotes
-          .map((lote, idx) => ({ ...lote, indiceOriginal: idx }))
-          .filter((lote) => lote.lote && lote.lote.trim() !== '')
-        
+    const data = await productosService.getProductosPorSala(s.codigo)
+    productosBase.value = (data ?? [])
+      .filter((p) => p.nombreProducto?.trim())
+      .map((p, index) => {
+        const codigo = String(p.codigoProducto ?? '').trim() || String(index + 1)
         return {
-          id: producto.codigoProducto || String(index + 1),
-          codigoProducto: String(producto.codigoProducto ?? '').trim() || String(index + 1),
-          item: producto.nombreProducto.trim(),
-          sala: salaSeleccionada.value || '',
-          lotes: lotesConDatos.map((lote) => ({
-            lote: lote.lote.trim(),
-            fechaVencimiento: lote.fechaVencimiento || '',
-            stockSala: lote.cantidadVendida || 0,
-            stockBodega: 0, // No tenemos esta info en la query
-            indiceOriginal: lote.indiceOriginal, // Guardar índice original
-          })),
+          id: codigo,
+          codigoProducto: codigo,
+          item: p.nombreProducto.trim(),
+          lotes: (p.lotes ?? [])
+            .filter((l) => l.lote?.trim())
+            .map((l) => ({ lote: l.lote.trim(), fechaVencimiento: l.fechaVencimiento || '', facturado: Number(l.cantidadVendida) || 0 })),
         }
       })
-      .filter((producto) => producto.lotes.length > 0) // Solo productos con lotes
-    
-    console.log('✅ Productos procesados:', productosBase.value.length)
-    productosBase.value.forEach((p, idx) => {
-      console.log(`  Producto ${idx + 1}: ${p.item} - ${p.lotes.length} lotes`)
-      p.lotes.forEach((l, lidx) => {
-        console.log(`    Lote ${lidx + 1}: ${l.lote} - ${l.fechaVencimiento}`)
-      })
-    })
-    
-    if (productosBase.value.length === 0) {
-      console.warn('⚠️ No se encontraron productos con lotes para esta sala después del procesamiento')
+      .filter((p) => p.lotes.length > 0)
+
+    if (!productosBase.value.length) {
+      toast.warning('Sin productos', 'Esta sala no tiene productos Impostor con lotes facturados.')
+      cambiarSala()
+      return
     }
+    seleccionados.value = []
+    busquedaProducto.value = ''
+    fase.value = 'seleccionar-productos'
   } catch (error: any) {
-    console.error('❌ Error cargando productos:', error)
-    console.error('❌ Error details:', {
-      message: error.message,
-      response: error.response?.data,
-      status: error.response?.status,
-    })
-    // NO usar productos por defecto, dejar vacío para que el usuario vea el error
-    productosBase.value = []
-    throw error // Re-lanzar el error para que handleSeleccionarSala lo maneje
-  } finally {
-    loadingProductos.value = false
+    toast.error('Error al cargar productos', error.response?.data?.message || error.message || 'Inténtalo nuevamente')
+    cambiarSala()
   }
 }
 
-
-
-const descargarResumen = () => {
-  const doc = new jsPDF()
-  const pageWidth = doc.internal.pageSize.getWidth()
-  const pageHeight = doc.internal.pageSize.getHeight()
-  let yPos = 20
-  const margin = 15
-  const maxWidth = pageWidth - 2 * margin
-
-  // Colores corporativos (grises y azul oscuro)
-  const colorDarkBlue: [number, number, number] = [30, 41, 59] // #1e293b
-  const colorDarkGray: [number, number, number] = [51, 65, 85] // #334155
-  const colorMediumGray: [number, number, number] = [100, 116, 139] // #64748b
-  const colorLightGray: [number, number, number] = [226, 232, 240] // #e2e8f0
-  const colorTextGray: [number, number, number] = [71, 85, 105] // #475569
-
-  // Encabezado
-  doc.setFillColor(colorDarkBlue[0], colorDarkBlue[1], colorDarkBlue[2])
-  doc.rect(0, 0, pageWidth, 50, 'F')
-  
-  doc.setFontSize(18)
-  doc.setTextColor(255, 255, 255)
-  doc.setFont('helvetica', 'bold')
-  doc.text('INFORME DE REPOSICIÓN', pageWidth / 2, 25, { align: 'center' })
-  
-  doc.setFontSize(10)
-  doc.setFont('helvetica', 'normal')
-  doc.text('Minoil S.A.', pageWidth / 2, 35, { align: 'center' })
-  
-  yPos = 60
-
-  doc.setFontSize(9)
-  doc.setTextColor(colorTextGray[0], colorTextGray[1], colorTextGray[2])
-  doc.text(`Sala: ${salaSeleccionada.value}`, margin, yPos)
-  yPos += 5
-  doc.text(`Fecha: ${new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}`, margin, yPos)
-  yPos += 12
-
-  // Línea separadora
-  doc.setDrawColor(colorLightGray[0], colorLightGray[1], colorLightGray[2])
-  doc.setLineWidth(0.5)
-  doc.line(margin, yPos, pageWidth - margin, yPos)
-  yPos += 10
-
-  // Resumen
-  doc.setFontSize(12)
-  doc.setTextColor(colorDarkBlue[0], colorDarkBlue[1], colorDarkBlue[2])
-  doc.setFont('helvetica', 'bold')
-  doc.text('RESUMEN', margin, yPos)
-  yPos += 10
-
-  doc.setFontSize(9)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(0, 0, 0)
-
-  // Total Sala - estilo corporativo
-  doc.setFillColor(colorLightGray[0], colorLightGray[1], colorLightGray[2])
-  doc.roundedRect(margin, yPos - 5, (pageWidth - 2 * margin) / 2 - 5, 18, 2, 2, 'F')
-  doc.setDrawColor(colorMediumGray[0], colorMediumGray[1], colorMediumGray[2])
-  doc.setLineWidth(0.5)
-  doc.roundedRect(margin, yPos - 5, (pageWidth - 2 * margin) / 2 - 5, 18, 2, 2, 'D')
-  doc.setTextColor(colorDarkGray[0], colorDarkGray[1], colorDarkGray[2])
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(8)
-  doc.text('Total Sala', margin + 5, yPos + 2)
-  doc.setFontSize(14)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(colorDarkBlue[0], colorDarkBlue[1], colorDarkBlue[2])
-  doc.text(String(totalSala.value), margin + 5, yPos + 10)
-
-  // Total Bodega - estilo corporativo
-  doc.setFillColor(colorLightGray[0], colorLightGray[1], colorLightGray[2])
-  doc.roundedRect(pageWidth / 2 + 5, yPos - 5, (pageWidth - 2 * margin) / 2 - 5, 18, 2, 2, 'F')
-  doc.setDrawColor(colorMediumGray[0], colorMediumGray[1], colorMediumGray[2])
-  doc.roundedRect(pageWidth / 2 + 5, yPos - 5, (pageWidth - 2 * margin) / 2 - 5, 18, 2, 2, 'D')
-  doc.setFontSize(8)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(colorDarkGray[0], colorDarkGray[1], colorDarkGray[2])
-  doc.text('Total Bodega', pageWidth / 2 + 10, yPos + 2)
-  doc.setFontSize(14)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(colorDarkBlue[0], colorDarkBlue[1], colorDarkBlue[2])
-  doc.text(salaTieneBodega.value ? String(totalBodega.value) : 'N/A', pageWidth / 2 + 10, yPos + 10)
-  yPos += 25
-
-  // Línea separadora
-  doc.setDrawColor(colorLightGray[0], colorLightGray[1], colorLightGray[2])
-  doc.line(margin, yPos, pageWidth - margin, yPos)
-  yPos += 10
-
-  // Detalle de registros
-  doc.setFontSize(12)
-  doc.setTextColor(colorDarkBlue[0], colorDarkBlue[1], colorDarkBlue[2])
-  doc.setFont('helvetica', 'bold')
-  doc.text('DETALLE DE REGISTROS', margin, yPos)
-  yPos += 8
-
-  doc.setFontSize(9)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(0, 0, 0)
-
-  // Tabla de productos
-  registrosAgrupados.value.forEach((prod, prodIdx) => {
-    // Verificar si necesitamos una nueva página
-    if (yPos > pageHeight - 50) {
-      doc.addPage()
-      yPos = 20
-    }
-
-    // Nombre del producto
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(10)
-    doc.setTextColor(colorDarkBlue[0], colorDarkBlue[1], colorDarkBlue[2])
-    doc.text(`${prodIdx + 1}. ${prod.item}`, margin, yPos)
-    yPos += 7
-
-    // Encabezados de tabla - estilo corporativo
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(8)
-    doc.setTextColor(255, 255, 255)
-    doc.setFillColor(colorDarkGray[0], colorDarkGray[1], colorDarkGray[2])
-    doc.rect(margin, yPos - 4, maxWidth, 6, 'F')
-    
-    const colWidths = [maxWidth * 0.25, maxWidth * 0.25, maxWidth * 0.25, maxWidth * 0.25]
-    let xPos = margin
-    
-    doc.text('Lote', xPos + 2, yPos)
-    xPos += colWidths[0]
-    doc.text('Vence', xPos + 2, yPos)
-    xPos += colWidths[1]
-    doc.text('Sala', xPos + 2, yPos)
-    xPos += colWidths[2]
-    doc.text('Bodega', xPos + 2, yPos)
-    yPos += 6
-
-    // Filas de lotes
-    prod.lotes.forEach((lote, loteIdx) => {
-      if (yPos > pageHeight - 20) {
-        doc.addPage()
-        yPos = 20
-      }
-
-      // Fondo alternado para mejor legibilidad
-      if (loteIdx % 2 === 0) {
-        doc.setFillColor(250, 250, 250)
-        doc.rect(margin, yPos - 4, maxWidth, 5, 'F')
-      }
-
-      doc.setFont('helvetica', 'normal')
-      doc.setFontSize(8)
-      doc.setTextColor(0, 0, 0)
-      xPos = margin
-
-      // Lote
-      doc.text(lote.lote, xPos + 2, yPos)
-      xPos += colWidths[0]
-
-      // Vencimiento
-      doc.text(formatearFecha(lote.fechaVencimiento), xPos + 2, yPos)
-      xPos += colWidths[1]
-
-      // Sala - estilo corporativo
-      doc.setDrawColor(colorMediumGray[0], colorMediumGray[1], colorMediumGray[2])
-      doc.setLineWidth(0.3)
-      doc.rect(xPos, yPos - 4, colWidths[2] - 1, 5, 'D')
-      doc.setTextColor(colorDarkBlue[0], colorDarkBlue[1], colorDarkBlue[2])
-      doc.setFont('helvetica', 'bold')
-      doc.text(String(lote.cantidadSala), xPos + colWidths[2] / 2, yPos, { align: 'center' })
-      xPos += colWidths[2]
-
-      // Bodega - estilo corporativo
-      doc.setDrawColor(colorMediumGray[0], colorMediumGray[1], colorMediumGray[2])
-      doc.rect(xPos, yPos - 4, colWidths[3] - 1, 5, 'D')
-      if (lote.noHayEnBodega) {
-        doc.setTextColor(120, 120, 120)
-        doc.setFont('helvetica', 'normal')
-        doc.text('No hay', xPos + colWidths[3] / 2, yPos, { align: 'center' })
-      } else {
-        doc.setTextColor(colorDarkBlue[0], colorDarkBlue[1], colorDarkBlue[2])
-        doc.setFont('helvetica', 'bold')
-        doc.text(String(lote.cantidadBodega || 0), xPos + colWidths[3] / 2, yPos, { align: 'center' })
-      }
-
-      yPos += 6
-      doc.setTextColor(0, 0, 0)
-    })
-
-    yPos += 4 // Espacio entre productos
-  })
-
-  // Pie de página
-  const finalY = pageHeight - 15
-  doc.setFontSize(7)
-  doc.setTextColor(colorMediumGray[0], colorMediumGray[1], colorMediumGray[2])
-  doc.setFont('helvetica', 'normal')
-  doc.text(`Total de registros: ${registros.value.length}`, margin, finalY)
-  doc.text(`Generado el: ${new Date().toLocaleString('es-ES')}`, pageWidth - margin, finalY, { align: 'right' })
-
-  // Descargar
-  const fileName = `Informe_Reposicion_${salaSeleccionada.value?.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`
-  doc.save(fileName)
+const cambiarSala = () => {
+  sala.value = null
+  productosBase.value = []
+  seleccionados.value = []
+  fase.value = 'seleccionar-sala'
 }
 
+const toggleProducto = (id: string) => {
+  seleccionados.value = seleccionados.value.includes(id)
+    ? seleccionados.value.filter((x) => x !== id)
+    : [...seleccionados.value, id]
+}
+
+const marcarFiltrados = (marcar: boolean) => {
+  const ids = new Set(productosFiltrados.value.map((p) => p.id))
+  seleccionados.value = marcar
+    ? [...new Set([...seleccionados.value, ...ids])]
+    : seleccionados.value.filter((id) => !ids.has(id))
+}
+
+// ---------- Conteo ----------
+
+const nuevoConteoId = () => (typeof crypto !== 'undefined' && 'randomUUID' in crypto
+  ? crypto.randomUUID()
+  : `${Date.now()}-${Math.random().toString(36).slice(2)}`)
+
+const iniciarConteo = () => {
+  if (!seleccionados.value.length) return
+  // Respetar el orden de la lista; conservar lo ya contado si se vuelve a esta pantalla.
+  productos.value = productosBase.value.filter((p) => seleccionados.value.includes(p.id))
+  if (!conteoId.value) conteoId.value = nuevoConteoId()
+  indexActual.value = 0
+  fase.value = 'sala'
+}
+
+const setCantidad = (destino: Cantidades, loteIdx: number, valor: number | undefined) => {
+  const id = productoActual.value.id
+  destino[id] = { ...(destino[id] ?? {}), [loteIdx]: valor }
+}
+
+const siguiente = () => {
+  if (!productoCompleto.value) return
+  if (indexActual.value < productos.value.length - 1) {
+    indexActual.value++
+  } else if (fase.value === 'sala') {
+    fase.value = 'pregunta-bodega'
+  } else {
+    fase.value = 'resumen'
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+const anterior = () => {
+  if ((fase.value === 'sala' || fase.value === 'bodega') && indexActual.value > 0) {
+    indexActual.value--
+  } else if (fase.value === 'sala') {
+    fase.value = 'seleccionar-productos'
+  } else if (fase.value === 'pregunta-bodega') {
+    indexActual.value = productos.value.length - 1
+    fase.value = 'sala'
+  } else if (fase.value === 'bodega') {
+    fase.value = 'pregunta-bodega'
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+const responderBodega = (respuesta: boolean) => {
+  tieneBodega.value = respuesta
+  indexActual.value = 0
+  fase.value = respuesta ? 'bodega' : 'resumen'
+}
+
+const editarConteo = () => {
+  indexActual.value = 0
+  fase.value = 'sala'
+}
+
+// ---------- Guardado ----------
+
+const guardar = async () => {
+  if (!sala.value || !registros.value.length || estadoGuardado.value === 'guardando') return
+  estadoGuardado.value = 'guardando'
+  errorGuardado.value = ''
+  try {
+    await impostorService.insertarStock(registros.value, conteoId.value)
+    estadoGuardado.value = 'guardado'
+    borrarBorrador()
+    toast.success('Conteo guardado', `${registros.value.length} registros de ${nombreSala.value}`)
+  } catch (error: any) {
+    estadoGuardado.value = 'error'
+    errorGuardado.value = error.response?.data?.message || (error.message === 'Network Error'
+      ? 'Sin conexión con el servidor.'
+      : 'Ocurrió un error al guardar.')
+  }
+}
+
+const descargarPdf = async () => {
+  generandoPdf.value = true
+  try {
+    const user = authService.getUser()
+    await descargarInformeReposicion({
+      sala: nombreSala.value,
+      empleado: user?.fullName || user?.username || '-',
+      tieneBodega: !!tieneBodega.value,
+      productos: productosInforme.value,
+      totalSala: totalSala.value,
+      totalBodega: totalBodega.value,
+      guardado: estadoGuardado.value === 'guardado',
+    })
+  } catch {
+    toast.error('No se pudo generar el PDF')
+  } finally {
+    generandoPdf.value = false
+  }
+}
+
+const reiniciar = () => {
+  borrarBorrador()
+  confirmarDescarte.value = false
+  conteoSala.value = {}
+  conteoBodega.value = {}
+  productos.value = []
+  tieneBodega.value = null
+  indexActual.value = 0
+  conteoId.value = ''
+  estadoGuardado.value = 'pendiente'
+  errorGuardado.value = ''
+  cambiarSala()
+}
+
+// ---------- Borrador local (sobrevive a recargas y cierres del navegador) ----------
+
+function leerBorrador(): Borrador | null {
+  try {
+    const raw = localStorage.getItem(BORRADOR_KEY)
+    const data = raw ? JSON.parse(raw) as Borrador : null
+    return data?.version === 1 && data.sala && Array.isArray(data.productosBase) ? data : null
+  } catch {
+    return null
+  }
+}
+
+function borrarBorrador() {
+  borradorPendiente.value = null
+  try { localStorage.removeItem(BORRADOR_KEY) } catch { /* almacenamiento no disponible */ }
+}
+
+const resumenBorrador = computed(() => {
+  const b = borradorPendiente.value
+  if (!b) return ''
+  if (!b.productos.length) return `${b.productosBase.length} productos por elegir`
+  const contados = b.productos.filter((p) => p.lotes.every((_, i) => b.conteoSala[p.id]?.[i] !== undefined)).length
+  return `${contados} de ${b.productos.length} productos contados en sala`
+})
+
+const haceCuanto = (iso: string) => {
+  const minutos = Math.round((Date.now() - new Date(iso).getTime()) / 60000)
+  if (!Number.isFinite(minutos) || minutos < 1) return 'hace un momento'
+  if (minutos < 60) return `hace ${minutos} min`
+  const horas = Math.round(minutos / 60)
+  return horas < 24 ? `hace ${horas} h` : `hace ${Math.round(horas / 24)} d`
+}
+
+const continuarBorrador = () => {
+  const b = borradorPendiente.value
+  if (!b) return
+  sala.value = b.sala
+  productosBase.value = b.productosBase
+  seleccionados.value = b.seleccionados
+  productos.value = b.productos
+  conteoSala.value = b.conteoSala
+  conteoBodega.value = b.conteoBodega
+  tieneBodega.value = b.tieneBodega
+  conteoId.value = b.conteoId
+  estadoGuardado.value = 'pendiente'
+  indexActual.value = Math.min(b.indexActual, Math.max(b.productos.length - 1, 0))
+  fase.value = b.fase === 'cargando-productos' || b.fase === 'seleccionar-sala' ? 'seleccionar-productos' : b.fase
+  borradorPendiente.value = null
+}
+
+const descartarBorrador = () => borrarBorrador()
+
+watch(
+  [fase, sala, seleccionados, productos, conteoSala, conteoBodega, tieneBodega, indexActual],
+  () => {
+    if (!enProgreso.value || !sala.value) return
+    const borrador: Borrador = {
+      version: 1,
+      fase: fase.value,
+      sala: sala.value,
+      productosBase: productosBase.value,
+      seleccionados: seleccionados.value,
+      productos: productos.value,
+      conteoSala: conteoSala.value,
+      conteoBodega: conteoBodega.value,
+      tieneBodega: tieneBodega.value,
+      indexActual: indexActual.value,
+      conteoId: conteoId.value,
+      actualizado: new Date().toISOString(),
+    }
+    try { localStorage.setItem(BORRADOR_KEY, JSON.stringify(borrador)) } catch { /* almacenamiento lleno o bloqueado */ }
+  },
+  { deep: true },
+)
+
 onMounted(() => {
+  borradorPendiente.value = leerBorrador()
   cargarSalas()
 })
 </script>
