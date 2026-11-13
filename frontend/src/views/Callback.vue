@@ -31,7 +31,7 @@ onMounted(async () => {
 
   try {
     await authService.handleCallback(code, state)
-    router.push('/dashboard')
+    router.push('/relevamiento-impostor')
   } catch (err) {
     console.error('Error en callback:', err)
     message.value = 'Error al procesar la autenticación. Redirigiendo...'

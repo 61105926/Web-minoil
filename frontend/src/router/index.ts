@@ -5,10 +5,9 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     {
+      // El dashboard se eliminó; se mantiene la URL para enlaces guardados.
       path: '/dashboard',
-      name: 'Dashboard',
-      component: () => import('@/views/Dashboard.vue'),
-      meta: { requiresAuth: true }
+      redirect: '/relevamiento-impostor'
     },
     {
       path: '/vacaciones',
@@ -66,7 +65,7 @@ const router = createRouter({
     },
     {
       path: '/',
-      redirect: '/dashboard'
+      redirect: '/relevamiento-impostor'
     }
   ]
 })
