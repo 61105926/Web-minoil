@@ -62,13 +62,13 @@ export function montoEnLetras(v: unknown): string {
 
 // ---------- PDF ----------
 
-/** Nota de despacho R-199 en carta horizontal; el detalle continúa en páginas siguientes si no entra. */
+/** Nota de despacho R-199 en carta vertical; el detalle continúa en páginas siguientes si no entra. */
 export function renderNotaDespachoPdf(cab: NotaDespachoCabecera, lineas: NotaDespachoLinea[]): Buffer {
-  const doc = new jsPDF({ unit: 'mm', format: 'letter', orientation: 'landscape' });
+  const doc = new jsPDF({ unit: 'mm', format: 'letter', orientation: 'portrait' });
   const W = doc.internal.pageSize.getWidth();
   const H = doc.internal.pageSize.getHeight();
-  const left = 15;
-  const right = W - 14;
+  const left = 13;
+  const right = W - 12;
   doc.setProperties({ title: `Nota de despacho ${cab.DocNum}`, author: 'MINOIL S.A.' });
   doc.setTextColor(0);
   doc.setDrawColor(0);
@@ -85,44 +85,46 @@ export function renderNotaDespachoPdf(cab: NotaDespachoCabecera, lineas: NotaDes
     doc.text(value, x, y, { align: o.align ?? 'left' });
   };
 
-  // Columnas del detalle
+  // Columnas del detalle (posiciones en mm; las numéricas alinean a la derecha)
   const col = {
-    articulo: left + 1, descripcion: left + 20, barra: 128, um: 168,
-    cantidad: 203, precio: 222, subtotal: 244, total: right,
+    articulo: left, descripcion: left + 13, barra: 96, um: 121,
+    cantidad: 149, precio: 165, subtotal: 184, total: right,
   };
   const encabezadoTabla = (y: number) => {
-    text('Artículo', left, y, { bold: true, size: 9 });
-    text('Descripción', col.descripcion, y, { bold: true, size: 9 });
-    text('Código Barra', col.barra, y, { bold: true, size: 9 });
-    text('U.M.', col.um, y, { bold: true, size: 9 });
-    text('Cantidad', col.cantidad, y, { bold: true, size: 9, align: 'right' });
-    text('Precio', col.precio, y, { bold: true, size: 9, align: 'right' });
-    text('SubTotal', col.subtotal, y, { bold: true, size: 9, align: 'right' });
-    text('Total', col.total, y, { bold: true, size: 9, align: 'right' });
+    const h = { bold: true, size: 8 };
+    text('Artículo', col.articulo, y, h);
+    text('Descripción', col.descripcion, y, h);
+    text('Código Barra', col.barra, y, h);
+    text('U.M.', col.um, y, h);
+    text('Cantidad', col.cantidad, y, { ...h, align: 'right' });
+    text('Precio', col.precio, y, { ...h, align: 'right' });
+    text('SubTotal', col.subtotal, y, { ...h, align: 'right' });
+    text('Total', col.total, y, { ...h, align: 'right' });
     doc.setLineWidth(0.5);
-    doc.line(left, y + 1.8, right, y + 1.8);
-    return y + 7;
+    doc.line(left, y + 1.6, right, y + 1.6);
+    return y + 6;
   };
   const titulo = (continuacion: boolean) => {
-    text('MINOIL S.A.', W / 2, 16, { bold: true, size: 14, align: 'center' });
-    text('NOTA DESPACHO', W / 2, 24, { bold: true, size: 14, align: 'center' });
-    text('R-199', right - 20, 15, { size: 11, align: 'center' });
-    if (continuacion) text(`Nro. Ped: ${cab.Pedido}   ·   continuación`, W / 2, 31, { size: 9, align: 'center' });
+    text('MINOIL S.A.', W / 2, 16, { bold: true, size: 13, align: 'center' });
+    text('NOTA DESPACHO', W / 2, 23, { bold: true, size: 13, align: 'center' });
+    text('R-199', right - 10, 15, { size: 10, align: 'center' });
+    if (continuacion) text(`Nro. Ped: ${cab.Pedido}   ·   continuación`, W / 2, 30, { size: 8.5, align: 'center' });
   };
 
   // Cabecera
   titulo(false);
-  const label = (t: string, x: number, y: number) => text(t, x, y, { size: 11 });
-  const value = (t: string, x: number, y: number, maxWidth?: number) => text(t, x, y, { size: 11, maxWidth });
-  label('FECHA:', left, 41); value(fecha(cab.Fecha), 47, 40);
-  label('NOMBRE:', left, 47); value(`${cab.CardCode} ${cab.Cliente ?? ''}`.trim(), 47, 46.5, 100);
-  label('VENDEDOR:', 152, 47); value(`${cab.SlpCode} ${cab.SlpName ?? ''}`.trim(), 182, 46.5, right - 182);
+  const label = (t: string, x: number, y: number) => text(t, x, y, { size: 10 });
+  const value = (t: string, x: number, y: number, maxWidth?: number) => text(t, x, y, { size: 10, maxWidth });
+  const vx = left + 24;
+  label('FECHA:', left, 40); value(fecha(cab.Fecha), vx, 40);
+  label('VENDEDOR:', 122, 40); value(`${cab.SlpCode} ${cab.SlpName ?? ''}`.trim(), 145, 40, right - 145);
+  label('NOMBRE:', left, 46); value(`${cab.CardCode} ${cab.Cliente ?? ''}`.trim(), vx, 46, right - vx);
 
-  label('DESTINO', left, 55);
+  label('DESTINO', left, 53);
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(11);
-  const destino: string[] = doc.splitTextToSize(String(cab.Direccion ?? '').trim() || '-', 125).slice(0, 3);
-  destino.forEach((linea, i) => doc.text(linea, 47, 55 + i * 5.5));
+  doc.setFontSize(10);
+  const destino: string[] = doc.splitTextToSize(String(cab.Direccion ?? '').trim() || '-', 118 - vx).slice(0, 3);
+  destino.forEach((linea, i) => doc.text(linea, vx, 53 + i * 5));
 
   const datos: [string, string][] = [
     ['NIT/CI:', String(cab.U_NIT ?? '')],
@@ -130,10 +132,10 @@ export function renderNotaDespachoPdf(cab: NotaDespachoCabecera, lineas: NotaDes
     ['Nro. Ped:', String(cab.Pedido ?? '')],
     ['Nro. Fact:', String(cab.NroFactura ?? '')],
   ];
-  datos.forEach(([l, v], i) => { label(l, 193, 61 + i * 6); value(v, 220, 61 + i * 6); });
+  datos.forEach(([l, v], i) => { label(l, 145, 58 + i * 5.5); value(v, 167, 58 + i * 5.5); });
 
   // Detalle
-  let y = encabezadoTabla(90);
+  let y = encabezadoTabla(84);
   let ordenActual = '1. Pedido';
   let totalCantidad = 0;
   let totalSubtotal = 0;
@@ -147,8 +149,8 @@ export function renderNotaDespachoPdf(cab: NotaDespachoCabecera, lineas: NotaDes
     if (l.Orden !== ordenActual) {
       ordenActual = l.Orden;
       const ref = l.Orden.split('-').slice(1).join('-').trim();
-      text(`Bonificación proveedor${ref ? ` · ${ref}` : ''}`, col.descripcion, y, { bold: true, size: 8.5 });
-      y += 5.5;
+      text(`Bonificación proveedor${ref ? ` · ${ref}` : ''}`, col.descripcion, y, { bold: true, size: 8 });
+      y += 5;
     }
     const cantidad = num(l.Quantity);
     const subtotal = num(l.SubTotal);
@@ -157,47 +159,52 @@ export function renderNotaDespachoPdf(cab: NotaDespachoCabecera, lineas: NotaDes
     totalSubtotal += subtotal;
     totalGeneral += total;
 
-    text(String(l.ItemCode ?? ''), col.articulo, y, { size: 9 });
-    text(String(l.Dscription ?? ''), col.descripcion, y, { size: 8.5, maxWidth: col.barra - col.descripcion - 3 });
-    text(String(l.CodeBars ?? ''), col.barra, y, { size: 8.5 });
-    text(String(l.UnidadMedida ?? ''), col.um, y, { size: 9, maxWidth: col.cantidad - col.um - 16 });
-    text(monto(cantidad), col.cantidad, y, { size: 9, align: 'right' });
-    text(monto(l.Precio), col.precio, y, { size: 9, align: 'right' });
-    text(monto(subtotal), col.subtotal, y, { size: 9, align: 'right' });
-    text(monto(total), col.total, y, { size: 9, align: 'right' });
-    y += 6;
+    const fila = { size: 7.5 };
+    text(String(l.ItemCode ?? ''), col.articulo, y, fila);
+    text(String(l.Dscription ?? ''), col.descripcion, y, { ...fila, maxWidth: col.barra - col.descripcion - 2 });
+    text(String(l.CodeBars ?? ''), col.barra, y, fila);
+    text(String(l.UnidadMedida ?? ''), col.um, y, { ...fila, maxWidth: 14 });
+    text(monto(cantidad), col.cantidad, y, { ...fila, align: 'right' });
+    text(monto(l.Precio), col.precio, y, { ...fila, align: 'right' });
+    text(monto(subtotal), col.subtotal, y, { ...fila, align: 'right' });
+    text(monto(total), col.total, y, { ...fila, align: 'right' });
+    y += 4.6;
   }
 
   // Totales (en una página nueva si no entran)
-  if (y + 34 > H - 8) {
+  if (y + 27 > H - 8) {
     doc.addPage();
     titulo(true);
     y = 40;
   }
   doc.setLineWidth(0.6);
-  doc.line(left - 2, y - 3, right, y - 3);
-  text('Paq.:', 150, y + 2, { size: 11, align: 'right' });
-  text(monto(totalCantidad), col.cantidad, y + 2, { bold: true, size: 10, align: 'right' });
-  text(monto(totalSubtotal), col.subtotal, y + 2, { bold: true, size: 10, align: 'right' });
-  text(monto(totalGeneral), col.total, y + 2, { bold: true, size: 10, align: 'right' });
+  doc.line(left, y - 2.5, right, y - 2.5);
+  text('Paq.:', col.um, y + 2, { size: 10 });
+  text(monto(totalCantidad), col.cantidad, y + 2, { bold: true, size: 9, align: 'right' });
+  text(monto(totalSubtotal), col.subtotal, y + 2, { bold: true, size: 9, align: 'right' });
+  text(monto(totalGeneral), col.total, y + 2, { bold: true, size: 9, align: 'right' });
 
-  text('Descuento', 233, y + 11, { bold: true, size: 9.5, align: 'right' });
-  text(monto(cab.DiscSumFC), right, y + 11, { bold: true, size: 10, align: 'right' });
-  text('TOTAL FACTURA: BS.', 233, y + 17, { bold: true, size: 10.5, align: 'right' });
-  text(monto(cab.DocTotalFC), right, y + 17, { bold: true, size: 10, align: 'right' });
+  text('Descuento', col.subtotal, y + 8, { bold: true, size: 9, align: 'right' });
+  text(monto(cab.DiscSumFC), right, y + 8, { bold: true, size: 9, align: 'right' });
+  text('TOTAL FACTURA: BS.', col.subtotal, y + 13.5, { bold: true, size: 9.5, align: 'right' });
+  text(monto(cab.DocTotalFC), right, y + 13.5, { bold: true, size: 9.5, align: 'right' });
 
-  text(`SON: ${montoEnLetras(cab.DocTotalFC)}`, left, y + 17, { size: 10, maxWidth: 165 });
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  const son: string[] = doc.splitTextToSize(`SON: ${montoEnLetras(cab.DocTotalFC)}`, 140 - left);
+  son.slice(0, 2).forEach((linea, i) => doc.text(linea, left, y + 13.5 + i * 4.5));
+  const yPie = y + 13.5 + Math.min(son.length, 2) * 4.5 + 1;
   text(`CxCobrar: ${monto(cab.SaldoVencido)}     Nro. Cuenta: ${cab.TransId ?? ''}     Vcto.: ${fecha(cab.Vencimiento)}`,
-    left, y + 23, { size: 10 });
-  text('Almacen', left, y + 29.5, { size: 11 });
-  text(String(cab.Almacen ?? ''), 47, y + 29, { size: 9.5 });
+    left, yPie, { size: 9 });
+  text('Almacen', left, yPie + 5.5, { size: 10 });
+  text(String(cab.Almacen ?? ''), vx, yPie + 5, { size: 9 });
 
   // Numeración
   const paginas = doc.getNumberOfPages();
   if (paginas > 1) {
     for (let p = 1; p <= paginas; p++) {
       doc.setPage(p);
-      text(`Página ${p} de ${paginas}`, right, H - 6, { size: 8, align: 'right' });
+      text(`Página ${p} de ${paginas}`, right, H - 6, { size: 7.5, align: 'right' });
     }
   }
 
