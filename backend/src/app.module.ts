@@ -20,6 +20,7 @@ import { BoletasModule } from './boletas/boletas.module';
 import { SurveyModule } from './survey/survey.module';
 import { VacacionesModule } from './vacaciones/vacaciones.module';
 import { LegacyApiModule } from './legacy-api/legacy-api.module';
+import { NotaDespachoModule } from './nota-despacho/nota-despacho.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { LegacyApiModule } from './legacy-api/legacy-api.module';
     SurveyModule,
     VacacionesModule,
     LegacyApiModule,
+    NotaDespachoModule,
     AuthModule,
     EmpleadosModule,
     SalasModule,
